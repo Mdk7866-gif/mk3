@@ -53,7 +53,7 @@ const Navbar = () => {
         </button>
 
         {/* Desktop Menu */}
-        <ul className="hidden md:flex space-x-8 text-lg">
+        <ul className="hidden md:flex space-x-8 text-lg items-center">
           {navItems.map((item) => (
             <li key={item.name} className="relative group">
               <button className="flex items-center gap-1 hover:text-gray-300">
@@ -72,6 +72,16 @@ const Navbar = () => {
               </div>
             </li>
           ))}
+
+          {/* Spellings link (no dropdown) */}
+          <li>
+            <Link
+              href="/spellings"
+              className="hover:text-gray-300 px-2 py-1 text-lg font-medium"
+            >
+              Spellings
+            </Link>
+          </li>
         </ul>
       </div>
 
@@ -110,6 +120,17 @@ const Navbar = () => {
               )}
             </div>
           ))}
+
+          {/* Spellings link for mobile */}
+          <div className="border-b border-gray-700">
+            <Link
+              href="/spellings"
+              className="block px-4 py-3 text-lg font-medium hover:bg-gray-700"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Spellings
+            </Link>
+          </div>
         </div>
       )}
     </nav>
