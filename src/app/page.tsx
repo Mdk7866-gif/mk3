@@ -1,9 +1,45 @@
-import Image from "next/image";
+// src/app/page.tsx
+import Card from '@/components/ui/NameCard'; // Adjust path as necessary
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      hiii
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-20 px-4 sm:px-6 lg:px-8 text-center shadow-lg">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-5xl md:text-6xl font-extrabold mb-4 animate-fadeInDown">
+            Welcome to MK3 Solutions
+          </h1>
+          <p className="text-xl md:text-2xl mb-8 opacity-90 animate-fadeInUp">
+            Your comprehensive platform for managing invoices, quotations, and GST.
+          </p>
+          <div className="flex justify-center space-x-4">
+            <a
+              href="/mustak/invoice" // Example: Link to Mustak's invoices
+              className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-3 rounded-full text-lg font-semibold transition-all duration-300 shadow-md hover:shadow-lg"
+            >
+              Get Started
+            </a>
+            <a
+              href="/contact"
+              className="border border-white text-white hover:bg-white hover:text-indigo-700 px-8 py-3 rounded-full text-lg font-semibold transition-all duration-300 shadow-md hover:shadow-lg"
+            >
+              Contact Us
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Cards Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl font-bold text-gray-800 mb-12 text-center">Our Key Clients</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+            <Card heading="Mustak Khan" totalAmount={5789000} linkPrefix="/mustak" />
+            <Card heading="Mushahid khan" totalAmount={4321000} linkPrefix="/mushahid" />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
