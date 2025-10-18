@@ -2,14 +2,53 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { toast, Toaster } from 'react-hot-toast';
 import ClientDetails, { ClientFormData } from '@/components/ClientDetails';
 import ItemsDetailsInvoice, { WorkItem } from '@/components/ItemsDetailsInvoice';
 
-// Define the shape of the full invoice data
+// Utility function to convert numbers to words (copied from ItemsDetailsInvoice.tsx)
+const numberToWords = (num: number): string => {
+  if (num === 0) return 'Zero';
+  const a = ['', 'one ', 'two ', 'three ', 'four ', 'five ', 'six ', 'seven ', 'eight ', 'nine ', 'ten ', 'eleven ', 'twelve ', 'thirteen ', 'fourteen ', 'fifteen ', 'sixteen ', 'seventeen ', 'eighteen ', 'nineteen '];
+  const b = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+  const convert = (n: number): string => {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + ' ' + a[n % 10];
+    if (n < 1000) return a[Math.floor(n / 100)] + 'hundred ' + convert(n % 100);
+    if (n < 100000) return convert(Math.floor(n / 1000)) + 'thousand ' + convert(n % 1000);
+    if (n < 10000000) return convert(Math.floor(n / 100000)) + 'lakh ' + convert(n % 100000);
+    return convert(Math.floor(n / 10000000)) + 'crore ' + convert(n % 10000000);
+  };
+
+  const wholePart = Math.floor(num);
+  const decimalPart = Math.round((num - wholePart) * 100);
+  let words = convert(wholePart).trim();
+  if (words === '') words = 'Zero';
+  if (decimalPart > 0) {
+    words += ' and ' + convert(decimalPart).trim() + ' paise';
+  }
+  return words.charAt(0).toUpperCase() + words.slice(1) + ' only.';
+};
+
+// Define the shape of the full invoice data (aligned with API)
 interface InvoiceData {
-  client: ClientFormData;
-  items: WorkItem[];
+  date: string; // DD/MM/YYYY
+  clientName: string;
+  clientAddress: string;
+  contact: string;
+  gstin?: string;
+  notes?: string;
+  items: Array<{
+    no: number;
+    description: string;
+    hsn?: string;
+    quantity: number;
+    rate: number;
+    amount: number;
+  }>;
   totalAmount: number;
+  amountInWords: string;
 }
 
 export default function MustakInvoicePage() {
@@ -33,23 +72,37 @@ export default function MustakInvoicePage() {
   // Function to gather all invoice data with validation
   const getFullInvoiceData = (): InvoiceData | null => {
     if (!clientData || !clientData.clientName || !clientData.clientAddress) {
-      setMessage('Error: Client Name and Address are required.');
-      setTimeout(() => setMessage(null), 3000);
+      toast.error('Client Name and Address are required.', { id: 'invoiceError' });
       return null;
     }
-    // Filter out items with no description or invalid amounts before sending
+    // Filter out items with no description or invalid amounts
     const validItems = invoiceItems.filter(item => item.description.trim() !== '' && item.amount > 0);
-
     if (validItems.length === 0) {
-        setMessage('Error: Please add at least one valid work item with description and amount.');
-        setTimeout(() => setMessage(null), 5000);
-        return null;
+      toast.error('Please add at least one valid work item with description and amount.', { id: 'invoiceError' });
+      return null;
     }
 
+    // Convert date from YYYY-MM-DD to DD/MM/YYYY
+    const dateParts = clientData.date.split('-');
+    const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+
     return {
-      client: clientData,
-      items: validItems,
+      date: formattedDate,
+      clientName: clientData.clientName,
+      clientAddress: clientData.clientAddress,
+      contact: clientData.contact,
+      gstin: clientData.gstin || '',
+      notes: clientData.notes || '',
+      items: validItems.map(item => ({
+        no: item.no,
+        description: item.description,
+        hsn: item.hsn || '',
+        quantity: typeof item.quantity === 'string' ? parseFloat(item.quantity) || 0 : item.quantity,
+        rate: typeof item.rate === 'string' ? parseFloat(item.rate) || 0 : item.rate,
+        amount: item.amount,
+      })),
       totalAmount: totalInvoiceAmount,
+      amountInWords: numberToWords(totalInvoiceAmount),
     };
   };
 
@@ -57,25 +110,24 @@ export default function MustakInvoicePage() {
   const handleGeneratePdfAndSave = async () => {
     setMessage(null); // Clear previous messages
     const fullInvoiceData = getFullInvoiceData();
-    if (!fullInvoiceData) return; // Validation failed inside getFullInvoiceData
+    if (!fullInvoiceData) return;
 
     setIsProcessing(true);
+    toast.loading('Saving and generating PDF...', { id: 'invoiceAction' });
 
     try {
-      // Simulate saving to database (dummy endpoint)
-      console.log('Attempting to save invoice data:', fullInvoiceData);
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate network delay
-      // --- Replace with actual fetch to your Next.js API route ---
-      // const saveResponse = await fetch('/api/mustak/invoice/save', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(fullInvoiceData),
-      // });
-      // if (!saveResponse.ok) {
-      //   const errorData = await saveResponse.json();
-      //   throw new Error(errorData.message || 'Failed to save invoice');
-      // }
-      console.log('Invoice saved (dummy). Data:', fullInvoiceData);
+      // Save to database
+      const saveResponse = await fetch('/api/mustaksaveinvoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fullInvoiceData),
+      });
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json();
+        throw new Error(errorData.message || 'Failed to save invoice');
+      }
+      const saveResult = await saveResponse.json();
+      console.log('Invoice saved:', saveResult);
 
       // Simulate generating PDF (dummy endpoint)
       console.log('Attempting to generate PDF for invoice data:', fullInvoiceData);
@@ -101,10 +153,14 @@ export default function MustakInvoicePage() {
       // window.URL.revokeObjectURL(url);
       console.log('PDF generated (dummy). Data:', fullInvoiceData);
 
-      setMessage('Invoice saved and PDF generated successfully! (Dummy ID: #INV-007)');
+      toast.success(`Invoice saved and PDF generated successfully! (ID: ${saveResult.invoiceNumber})`, {
+        id: 'invoiceAction',
+      });
+      setMessage(`Invoice saved and PDF generated successfully! (ID: ${saveResult.invoiceNumber})`);
     } catch (error: any) {
+      toast.error(`Error: ${error.message || 'Failed to save invoice or generate PDF'}`, { id: 'invoiceAction' });
       setMessage(`Error: ${error.message || 'Failed to save invoice or generate PDF'}`);
-      console.error('Error (dummy):', error);
+      console.error('Error:', error);
     } finally {
       setIsProcessing(false);
     }
@@ -112,6 +168,7 @@ export default function MustakInvoicePage() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 md:p-8">
+      <Toaster />
       <header className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-extrabold text-gray-900">Create Invoice for Mustak Khan</h1>
       </header>
@@ -134,9 +191,18 @@ export default function MustakInvoicePage() {
           >
             {isProcessing ? (
               <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Processing...
               </>
@@ -148,7 +214,11 @@ export default function MustakInvoicePage() {
 
         {/* Message for save/PDF generation */}
         {message && (
-          <div className={`mt-4 p-4 rounded-md text-center text-lg ${message.startsWith('Error') ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
+          <div
+            className={`mt-4 p-4 rounded-md text-center text-lg ${
+              message.startsWith('Error') ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+            }`}
+          >
             <p>{message}</p>
           </div>
         )}
