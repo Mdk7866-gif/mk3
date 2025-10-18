@@ -6,18 +6,21 @@ import ItemsDetailsGst, { GstItem, GstInvoiceTotals } from '@/components/ItemsDe
 import Link from 'next/link';
 import { toast, Toaster } from 'react-hot-toast';
 
+// Utility to check shallow equality for arrays and objects
+const isEqual = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
+
 function CreateGstInvoicePage() {
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [gstItems, setGstItems] = useState<GstItem[]>([]);
   const [gstTotals, setGstTotals] = useState<GstInvoiceTotals | null>(null);
 
   const handleClientDataChange = useCallback((data: ClientFormData) => {
-    setClientData(data);
+    setClientData((prev) => (isEqual(prev, data) ? prev : data));
   }, []);
 
   const handleGstItemsChange = useCallback((items: GstItem[], totals: GstInvoiceTotals) => {
-    setGstItems(items);
-    setGstTotals(totals);
+    setGstItems((prev) => (isEqual(prev, items) ? prev : items));
+    setGstTotals((prev) => (isEqual(prev, totals) ? prev : totals));
   }, []);
 
   const handleSaveGstInvoice = async () => {
@@ -87,11 +90,7 @@ function CreateGstInvoicePage() {
       <Toaster />
       <header className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-extrabold text-gray-900">Create GST Invoice for Mustak Khan</h1>
-        <div className="flex space-x-4">
-          <span className="text-blue-600 font-medium cursor-pointer">Mustak ▼</span>
-          <span className="text-blue-600 font-medium cursor-pointer">Mushahid ▼</span>
-          <span className="text-blue-600 font-medium cursor-pointer">Spellings ▼</span>
-        </div>
+      
       </header>
 
       <main className="max-w-6xl mx-auto space-y-8">

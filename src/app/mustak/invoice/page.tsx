@@ -146,8 +146,11 @@ export default function MustakInvoicePage() {
 
 
   return (
-    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-250px)]">
-      <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">Create Invoice for Mustak Khan</h1>
+     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 md:p-8">
+         <header className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-extrabold text-gray-900">Create Invoice for Mustak Khan</h1>
+    
+      </header>
 
       <div className="max-w-4xl mx-auto space-y-8 lg:space-y-12"> {/* Adjusted max-w for better spacing */}
         {/* Client Details Component */}

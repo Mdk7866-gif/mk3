@@ -106,12 +106,7 @@ const CreateQuotationPage: React.FC = () => {
       <Toaster /> {/* Toast notifications */}
       <header className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-extrabold text-gray-900">Create Quotation for Mustak Khan</h1>
-        <div className="flex space-x-4">
-          {/* Dummy User Dropdowns - replace with actual Next.js Link or logic */}
-          <span className="text-blue-600 font-medium cursor-pointer">Mustak ▼</span>
-          <span className="text-blue-600 font-medium cursor-pointer">Mushahid ▼</span>
-          <span className="text-blue-600 font-medium cursor-pointer">Spellings ▼</span>
-        </div>
+    
       </header>
 
       <main className="max-w-4xl mx-auto space-y-8">
