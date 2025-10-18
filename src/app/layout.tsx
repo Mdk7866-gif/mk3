@@ -1,8 +1,9 @@
 // src/app/layout.tsx
-import './globals.css'; // Your global styles including Tailwind
+import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import Navbar from '../components/Navbar'; // Adjust path if needed
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer'; // Import the Footer
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,8 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Navbar /> {/* Your Navbar component */}
-        <main>{children}</main> {/* Your page content */}
+        <Navbar />
+        <main className="flex-grow">{children}</main> {/* main usually takes up remaining space */}
+        <Footer /> {/* Your Footer component */}
       </body>
     </html>
   );
