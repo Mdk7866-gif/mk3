@@ -1,18 +1,10 @@
 // src/components/ClientDetails.tsx
-'use client'; // This component will use client-side interactivity for form inputs and state
+'use client';
 
-import React, { useState } from 'react';
-
-// Define the props for the ClientDetails component (if any external data needs to be passed)
-interface ClientDetailsProps {
-  // Optional: A callback function to send client data back to the parent
-  onSave?: (data: ClientFormData) => void;
-  // Optional: Initial data to pre-fill the form
-  initialData?: ClientFormData;
-}
+import React, { useState, useEffect } from 'react';
 
 // Define the shape of the form data
-interface ClientFormData {
+export interface ClientFormData {
   date: string;
   clientName: string;
   clientAddress: string;
@@ -21,7 +13,15 @@ interface ClientFormData {
   notes: string;
 }
 
-const ClientDetails: React.FC<ClientDetailsProps> = ({ onSave, initialData }) => {
+// Define the props for the ClientDetails component
+interface ClientDetailsProps {
+  // Callback function to send client data back to the parent on change
+  onDataChange: (data: ClientFormData) => void;
+  // Optional: Initial data to pre-fill the form
+  initialData?: ClientFormData;
+}
+
+const ClientDetails: React.FC<ClientDetailsProps> = ({ onDataChange, initialData }) => {
   const [formData, setFormData] = useState<ClientFormData>(
     initialData || {
       date: new Date().toISOString().split('T')[0], // Default to today's date
@@ -33,6 +33,11 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ onSave, initialData }) =>
     }
   );
 
+  // Effect to call onDataChange whenever formData changes
+  useEffect(() => {
+    onDataChange(formData);
+  }, [formData, onDataChange]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -41,19 +46,10 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ onSave, initialData }) =>
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Client Details Submitted:', formData);
-    if (onSave) {
-      onSave(formData);
-    }
-    // Optionally, you might want to reset the form or show a success message
-  };
-
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg">
+    <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg"> {/* Added responsive padding */}
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Client Details</h2>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"> {/* Responsive grid layout */}
         {/* Date Input */}
         <div>
           <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
@@ -66,7 +62,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ onSave, initialData }) =>
             value={formData.date}
             onChange={handleChange}
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
           />
         </div>
 
@@ -83,12 +79,12 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ onSave, initialData }) =>
             onChange={handleChange}
             placeholder="Enter client's full name"
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
           />
         </div>
 
         {/* Client Address */}
-        <div>
+        <div className="md:col-span-2"> {/* Span full width on medium screens */}
           <label htmlFor="clientAddress" className="block text-sm font-medium text-gray-700 mb-1">
             Client Address
           </label>
@@ -100,7 +96,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ onSave, initialData }) =>
             rows={3}
             placeholder="Enter client's full address"
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
           ></textarea>
         </div>
 
@@ -110,13 +106,13 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ onSave, initialData }) =>
             Email / Mobile
           </label>
           <input
-            type="text" // Can be 'email' or 'tel' for specific validation if needed
+            type="text"
             id="contact"
             name="contact"
             value={formData.contact}
             onChange={handleChange}
             placeholder="Enter email or mobile number"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
           />
         </div>
 
@@ -132,12 +128,12 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ onSave, initialData }) =>
             value={formData.gstin}
             onChange={handleChange}
             placeholder="Enter GSTIN"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
           />
         </div>
 
         {/* Note Box */}
-        <div>
+        <div className="md:col-span-2"> {/* Span full width on medium screens */}
           <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
             Notes
           </label>
@@ -147,17 +143,10 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ onSave, initialData }) =>
             value={formData.notes}
             onChange={handleChange}
             rows={5}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
           ></textarea>
         </div>
-
-        <button
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
-        >
-          Save Client Details
-        </button>
-      </form>
+      </div>
     </div>
   );
 };
