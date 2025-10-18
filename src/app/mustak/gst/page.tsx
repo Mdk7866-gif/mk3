@@ -6,69 +6,138 @@ import ItemsDetailsGst, { GstItem, GstInvoiceTotals } from '@/components/ItemsDe
 import Link from 'next/link';
 import { toast, Toaster } from 'react-hot-toast';
 
-// Utility to check shallow equality for arrays and objects
-const isEqual = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
+// Define the shape of the GST invoice data (aligned with API)
+interface GstInvoiceData {
+  date: string; // DD/MM/YYYY
+  clientName: string;
+  clientAddress: string;
+  contact: string;
+  gstin?: string;
+  notes?: string;
+  items: Array<{
+    no: number;
+    description: string;
+    hsn?: string;
+    quantity: number;
+    rate: number;
+    taxableAmount: number;
+    gst: number;
+    totalAmount: number;
+  }>;
+  totalAmountBeforeTax: number;
+  cgst: number;
+  sgst: number;
+  totalTaxAmount: number;
+  totalAmountAfterTax: number;
+  amountInWords: string;
+}
 
 function CreateGstInvoicePage() {
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [gstItems, setGstItems] = useState<GstItem[]>([]);
   const [gstTotals, setGstTotals] = useState<GstInvoiceTotals | null>(null);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   const handleClientDataChange = useCallback((data: ClientFormData) => {
-    setClientData((prev) => (isEqual(prev, data) ? prev : data));
+    setClientData(data);
   }, []);
 
   const handleGstItemsChange = useCallback((items: GstItem[], totals: GstInvoiceTotals) => {
-    setGstItems((prev) => (isEqual(prev, items) ? prev : items));
-    setGstTotals((prev) => (isEqual(prev, totals) ? prev : totals));
+    setGstItems(prev => {
+      // Only update if items have changed to prevent infinite loop
+      if (JSON.stringify(prev) !== JSON.stringify(items)) {
+        return items;
+      }
+      return prev;
+    });
+    setGstTotals(prev => {
+      // Only update if totals have changed
+      if (JSON.stringify(prev) !== JSON.stringify(totals)) {
+        return totals;
+      }
+      return prev;
+    });
   }, []);
 
-  const handleGeneratePdfAndSave = async () => {
-    if (!clientData || gstItems.length === 0 || !gstTotals) {
-      toast.error('Please fill in client details and add at least one item.', { id: 'gstAction' });
-      return;
+  const getGstInvoicePayload = (): GstInvoiceData | null => {
+    if (!clientData || !clientData.clientName || !clientData.clientAddress || !clientData.contact || !gstItems.length || !gstTotals) {
+      toast.error('Client Name, Address, Contact, and at least one item are required.', { id: 'gstError' });
+      return null;
     }
 
-    const gstInvoicePayload = { client: clientData, items: gstItems, totals: gstTotals };
-    console.log('Processing GST Invoice:', gstInvoicePayload);
+    // Filter out invalid items
+    const validItems = gstItems.filter(
+      item => item.description.trim() !== '' && item.quantity !== '' && item.rate !== '' && item.taxableAmount > 0
+    );
+    if (validItems.length === 0) {
+      toast.error('Please add at least one valid work item with description, quantity, rate, and taxable amount.', { id: 'gstError' });
+      return null;
+    }
+
+    // Convert date from YYYY-MM-DD to DD/MM/YYYY
+    const dateParts = clientData.date.split('-');
+    const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+
+    return {
+      date: formattedDate,
+      clientName: clientData.clientName,
+      clientAddress: clientData.clientAddress,
+      contact: clientData.contact,
+      gstin: clientData.gstin || '',
+      notes: clientData.notes || '',
+      items: validItems.map(item => ({
+        no: item.no,
+        description: item.description,
+        hsn: item.hsn || '',
+        quantity: typeof item.quantity === 'string' ? parseFloat(item.quantity) || 0 : item.quantity,
+        rate: typeof item.rate === 'string' ? parseFloat(item.rate) || 0 : item.rate,
+        taxableAmount: parseFloat(item.taxableAmount.toFixed(2)),
+        gst: parseFloat(item.gst.toFixed(2)),
+        totalAmount: parseFloat(item.totalAmount.toFixed(2)),
+      })),
+      totalAmountBeforeTax: parseFloat(gstTotals.totalAmountBeforeTax.toFixed(2)),
+      cgst: parseFloat(gstTotals.cgst.toFixed(2)),
+      sgst: parseFloat(gstTotals.sgst.toFixed(2)),
+      totalTaxAmount: parseFloat(gstTotals.totalTaxAmount.toFixed(2)),
+      totalAmountAfterTax: parseFloat(gstTotals.totalAmountAfterTax.toFixed(2)),
+      amountInWords: gstTotals.amountInWords,
+    };
+  };
+
+  const handleGeneratePdfAndSave = async () => {
+    const gstInvoicePayload = getGstInvoicePayload();
+    if (!gstInvoicePayload) return;
+
+    setIsProcessing(true);
     toast.loading('Saving and generating PDF...', { id: 'gstAction' });
 
     try {
-      // Simulate saving to database (dummy endpoint)
-      console.log('Attempting to save GST invoice:', gstInvoicePayload);
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate network delay
-      // --- Replace with actual fetch to your Next.js API route ---
-      // const saveResponse = await fetch('/api/gst-invoices', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(gstInvoicePayload),
-      // });
-      // if (!saveResponse.ok) {
-      //   const errorData = await saveResponse.json();
-      //   throw new Error(errorData.message || 'Failed to save GST invoice');
-      // }
-      console.log('GST invoice saved (dummy). Data:', gstInvoicePayload);
+      // Save to database
+      const saveResponse = await fetch('/api/mustaksavegst', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gstInvoicePayload),
+      });
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json();
+        throw new Error(errorData.message || 'Failed to save GST invoice');
+      }
+      const saveResult = await saveResponse.json();
+      console.log('GST invoice saved:', saveResult);
 
       // Simulate generating PDF (dummy endpoint)
       console.log('Attempting to generate PDF for GST invoice:', gstInvoicePayload);
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate network delay
-      // --- Replace with actual fetch to your Next.js API route ---
-      // const pdfResponse = await fetch('/api/gst-invoices/generate-pdf', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(gstInvoicePayload),
-      // });
-      // if (!pdfResponse.ok) {
-      //   const errorData = await pdfResponse.json();
-      //   throw new Error(errorData.message || 'Failed to generate PDF');
-      // }
-      // const result = await pdfResponse.json();
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       console.log('PDF generated (dummy). Data:', gstInvoicePayload);
 
-      toast.success('GST invoice saved and PDF generated successfully!', { id: 'gstAction' });
+      toast.success(`GST invoice saved and PDF generated successfully! (ID: ${saveResult.invoiceNumber})`, {
+        id: 'gstAction',
+      });
     } catch (error: any) {
       console.error('Error processing GST invoice:', error);
-      toast.error(`Error: ${error.message || 'Failed to save invoice or generate PDF'}`, { id: 'gstAction' });
+      toast.error(`Error: ${error.message || 'Failed to save GST invoice or generate PDF'}`, { id: 'gstAction' });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -86,9 +155,33 @@ function CreateGstInvoicePage() {
         <div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-4 mt-8">
           <button
             onClick={handleGeneratePdfAndSave}
-            className="w-full sm:w-auto px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md shadow-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            disabled={isProcessing || !clientData || !gstItems.length || !gstTotals}
+            className={`w-full sm:w-auto px-6 py-3 rounded-md text-lg font-semibold shadow-md transition-colors duration-200
+              ${isProcessing || !clientData || !gstItems.length || !gstTotals
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2'
+              }`}
           >
-            Generate PDF
+            {isProcessing ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              'Generate PDF'
+            )}
           </button>
         </div>
 
