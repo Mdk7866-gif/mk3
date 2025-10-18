@@ -1,18 +1,16 @@
-// src/components/ItemsDetailsQuotation.tsx
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2 } from 'lucide-react'; // Using lucide-react for icons
+import { Plus, Trash2 } from 'lucide-react';
 
 // Define the structure for a single work item for quotation
 export interface QuotationItem {
   id: string; // Unique ID for React list keys and easy manipulation
   no: number; // Row number, auto-incremented
   description: string;
-  hsn: string;
+  hsn?: string; // Optional
   quantity: number | ''; // Allow empty string for initial state
   rate: number | ''; // Allow empty string for initial state
-  // Amount field is intentionally omitted for quotation
 }
 
 // Define the props for the ItemsDetailsQuotation component
@@ -39,7 +37,24 @@ const ItemsDetailsQuotation: React.FC<ItemsDetailsQuotationProps> = ({ onItemsCh
 
   useEffect(() => {
     if (onItemsChange) {
-      onItemsChange(items);
+      // Ensure quantity and rate are numbers when valid, preserve empty strings
+      const formattedItems = items.map(item => ({
+        ...item,
+        quantity:
+          item.quantity === ''
+            ? ''
+            : typeof item.quantity === 'string'
+            ? parseFloat(item.quantity) || 0
+            : item.quantity,
+        rate:
+          item.rate === ''
+            ? ''
+            : typeof item.rate === 'string'
+            ? parseFloat(item.rate) || 0
+            : item.rate,
+      })) as QuotationItem[]; // ✅ FIX: cast to correct type
+
+      onItemsChange(formattedItems);
     }
   }, [items, onItemsChange]);
 
@@ -48,13 +63,7 @@ const ItemsDetailsQuotation: React.FC<ItemsDetailsQuotationProps> = ({ onItemsCh
       setItems((prevItems) => {
         return prevItems.map((item) => {
           if (item.id === id) {
-            let updatedItem = { ...item, [field]: value };
-
-            // Ensure quantity/rate values for display remain as empty string if user cleared them
-            if (field === 'quantity' && value === '') updatedItem.quantity = '';
-            if (field === 'rate' && value === '') updatedItem.rate = '';
-
-            return updatedItem;
+            return { ...item, [field]: value };
           }
           return item;
         });
@@ -143,7 +152,9 @@ const ItemsDetailsQuotation: React.FC<ItemsDetailsQuotationProps> = ({ onItemsCh
                 name="quantity"
                 placeholder="0"
                 value={item.quantity === 0 ? '' : item.quantity}
-                onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                onChange={(e) =>
+                  handleItemChange(item.id, 'quantity', e.target.value === '' ? '' : parseFloat(e.target.value))
+                }
                 min="0"
                 className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm text-right"
               />
@@ -156,7 +167,9 @@ const ItemsDetailsQuotation: React.FC<ItemsDetailsQuotationProps> = ({ onItemsCh
                 name="rate"
                 placeholder="0.00"
                 value={item.rate === 0 ? '' : item.rate}
-                onChange={(e) => handleItemChange(item.id, 'rate', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                onChange={(e) =>
+                  handleItemChange(item.id, 'rate', e.target.value === '' ? '' : parseFloat(e.target.value))
+                }
                 min="0"
                 step="0.01"
                 className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm text-right"
@@ -199,7 +212,9 @@ const ItemsDetailsQuotation: React.FC<ItemsDetailsQuotationProps> = ({ onItemsCh
             </div>
             <div className="space-y-3">
               <div>
-                <label htmlFor={`description-${item.id}`} className="block text-xs font-medium text-gray-600">Description</label>
+                <label htmlFor={`description-${item.id}`} className="block text-xs font-medium text-gray-600">
+                  Description
+                </label>
                 <textarea
                   id={`description-${item.id}`}
                   name="description"
@@ -211,7 +226,9 @@ const ItemsDetailsQuotation: React.FC<ItemsDetailsQuotationProps> = ({ onItemsCh
                 />
               </div>
               <div>
-                <label htmlFor={`hsn-${item.id}`} className="block text-xs font-medium text-gray-600">HSN</label>
+                <label htmlFor={`hsn-${item.id}`} className="block text-xs font-medium text-gray-600">
+                  HSN
+                </label>
                 <input
                   id={`hsn-${item.id}`}
                   type="text"
@@ -224,27 +241,35 @@ const ItemsDetailsQuotation: React.FC<ItemsDetailsQuotationProps> = ({ onItemsCh
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor={`quantity-${item.id}`} className="block text-xs font-medium text-gray-600">QTY.</label>
+                  <label htmlFor={`quantity-${item.id}`} className="block text-xs font-medium text-gray-600">
+                    QTY.
+                  </label>
                   <input
                     id={`quantity-${item.id}`}
                     type="number"
                     name="quantity"
                     placeholder="0"
                     value={item.quantity === 0 ? '' : item.quantity}
-                    onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    onChange={(e) =>
+                      handleItemChange(item.id, 'quantity', e.target.value === '' ? '' : parseFloat(e.target.value))
+                    }
                     min="0"
                     className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm text-right"
                   />
                 </div>
                 <div>
-                  <label htmlFor={`rate-${item.id}`} className="block text-xs font-medium text-gray-600">Rate</label>
+                  <label htmlFor={`rate-${item.id}`} className="block text-xs font-medium text-gray-600">
+                    Rate
+                  </label>
                   <input
                     id={`rate-${item.id}`}
                     type="number"
                     name="rate"
                     placeholder="0.00"
                     value={item.rate === 0 ? '' : item.rate}
-                    onChange={(e) => handleItemChange(item.id, 'rate', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    onChange={(e) =>
+                      handleItemChange(item.id, 'rate', e.target.value === '' ? '' : parseFloat(e.target.value))
+                    }
                     min="0"
                     step="0.01"
                     className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm text-right"
