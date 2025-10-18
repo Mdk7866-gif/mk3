@@ -13,16 +13,16 @@ const Navbar = () => {
       name: 'Mustak',
       dropdown: [
         { label: 'Invoice', href: '/mustak/invoice' },
-        { label: 'Quotation', href: '/mustak/quotation' },
         { label: 'GST', href: '/mustak/gst' },
+        { label: 'Quotation', href: '/mustak/quotation' },
       ],
     },
     {
       name: 'Mushahid',
       dropdown: [
         { label: 'Invoice', href: '/mushahid/invoice' },
-        { label: 'Quotation', href: '/mushahid/quotation' },
         { label: 'GST', href: '/mushahid/gst' },
+        { label: 'Quotation', href: '/mushahid/quotation' },
       ],
     },
   ];
