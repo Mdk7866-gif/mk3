@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
+// Define the expected shape of a single item
+interface Item {
+  no: number;
+  description: string;
+  hsn?: string; // Optional
+  quantity: number;
+  rate: number;
+  amount: number;
+}
+
 // Define the expected shape of the invoice data
 interface InvoiceData {
-  client: {
-    clientName: string;
-    clientAddress: string;
-    [key: string]: any; // Allow additional client fields
-  };
-  items: Array<{
-    description?: string;
-    amount?: number;
-    [key: string]: any; // Allow additional item fields
-  }>;
-  totals?: {
-    totalAmount?: number;
-    [key: string]: any; // Allow additional totals fields (e.g., GST-specific fields)
-  };
-  type?: string; // Optional field to distinguish between invoice, GST invoice, or quotation
+  date: string; // Format: DD/MM/YYYY
+  clientName: string;
+  clientAddress: string;
+  contact: string; // Email or mobile
+  gstin?: string; // Optional
+  notes?: string; // Optional
+  items: Item[];
+  totalAmount: number;
+  amountInWords: string;
 }
 
 // MongoDB connection URI from environment variables
@@ -34,31 +38,103 @@ const client = new MongoClient(uri, {
   },
 });
 
+// Generate invoice number in format INV-YYYY-NNN
+async function generateInvoiceNumber(db: any, year: string): Promise<string> {
+  const collection = db.collection(collectionName);
+  
+  // Find the latest invoice for the given year
+  const latestInvoice = await collection
+    .find({ invoiceNumber: { $regex: `^INV-${year}-` } })
+    .sort({ invoiceNumber: -1 })
+    .limit(1)
+    .toArray();
+
+  let sequence = 1;
+  if (latestInvoice.length > 0) {
+    const lastInvoiceNumber = latestInvoice[0].invoiceNumber; // e.g., INV-2025-001
+    const lastSequence = parseInt(lastInvoiceNumber.split('-')[2], 10);
+    sequence = lastSequence + 1;
+  }
+
+  // Pad sequence to three digits (e.g., 001, 002, etc.)
+  const paddedSequence = sequence.toString().padStart(3, '0');
+  return `INV-${year}-${paddedSequence}`;
+}
+
 // POST handler for the /api/mushahidsaveinvoice endpoint
 export async function POST(req: NextRequest) {
   try {
     // Parse the request body
     const body: InvoiceData = await req.json();
 
-    // Basic validation
-    if (!body.client || !body.client.clientName || !body.client.clientAddress || !body.items || body.items.length === 0) {
+    // Validate required fields
+    if (
+      !body.date ||
+      !body.clientName ||
+      !body.clientAddress ||
+      !body.contact ||
+      !body.items ||
+      body.items.length === 0 ||
+      !body.totalAmount ||
+      !body.amountInWords
+    ) {
       return NextResponse.json(
-        { message: 'Missing required fields: client details and at least one item are required' },
+        { message: 'Missing required fields: date, clientName, clientAddress, contact, items, totalAmount, and amountInWords are required' },
         { status: 400 }
       );
+    }
+
+    // Validate date format (DD/MM/YYYY)
+    const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (!dateRegex.test(body.date)) {
+      return NextResponse.json(
+        { message: 'Invalid date format. Use DD/MM/YYYY' },
+        { status: 400 }
+      );
+    }
+
+    // Validate items
+    for (const item of body.items) {
+      if (
+        !item.no ||
+        !item.description ||
+        !item.quantity ||
+        !item.rate ||
+        !item.amount
+      ) {
+        return NextResponse.json(
+          { message: 'Each item must have no, description, quantity, rate, and amount' },
+          { status: 400 }
+        );
+      }
     }
 
     // Connect to MongoDB
     await client.connect();
     const db = client.db(dbName);
-    const collection = db.collection(collectionName);
+
+    // Extract year from date (DD/MM/YYYY -> YYYY)
+    const year = body.date.split('/')[2];
+
+    // Generate invoice number
+    const invoiceNumber = await generateInvoiceNumber(db, year);
 
     // Prepare the document to insert
     const document = {
-      ...body,
+      invoiceNumber,
+      date: body.date,
+      clientName: body.clientName,
+      clientAddress: body.clientAddress,
+      contact: body.contact,
+      gstin: body.gstin || '', // Default to empty string if not provided
+      notes: body.notes || '', // Default to empty string if not provided
+      items: body.items,
+      totalAmount: body.totalAmount,
+      amountInWords: body.amountInWords,
       createdAt: new Date(),
-      invoiceId: `INV-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // Generate a unique invoice ID
     };
+
+    const collection = db.collection(collectionName);
 
     // Insert the document into the mushahidinvoice collection
     const result = await collection.insertOne(document);
@@ -70,6 +146,7 @@ export async function POST(req: NextRequest) {
       {
         message: 'Invoice saved successfully',
         invoiceId: result.insertedId.toString(),
+        invoiceNumber,
       },
       { status: 200 }
     );
