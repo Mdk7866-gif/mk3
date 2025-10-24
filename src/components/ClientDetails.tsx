@@ -8,7 +8,8 @@ export interface ClientFormData {
   date: string;
   clientName: string;
   clientAddress: string;
-  contact: string; // Can be email or mobile
+  email?: string;
+  mobile?: string;
   gstin: string;
   notes: string;
 }
@@ -27,7 +28,8 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ onDataChange, initialData
       date: new Date().toISOString().split('T')[0], // Default to today's date
       clientName: '',
       clientAddress: '',
-      contact: '',
+      email: '',
+      mobile: '',
       gstin: '',
       notes: "1) 15% extra will be charged for work outside Ahmedabad.\n2) Extra charges applicable for material shifting to upper floors without lift.",
     }
@@ -100,18 +102,34 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ onDataChange, initialData
           ></textarea>
         </div>
 
-        {/* Email/Mobile */}
+        {/* Email */}
         <div>
-          <label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-1">
-            Email / Mobile
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            Email (Optional)
           </label>
           <input
-            type="text"
-            id="contact"
-            name="contact"
-            value={formData.contact}
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email || ''}
             onChange={handleChange}
-            placeholder="Enter email or mobile number"
+            placeholder="Enter email address"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+          />
+        </div>
+
+        {/* Mobile */}
+        <div>
+          <label htmlFor="mobile" className="block text-sm font-medium text-gray-700 mb-1">
+            Mobile (Optional)
+          </label>
+          <input
+            type="tel"
+            id="mobile"
+            name="mobile"
+            value={formData.mobile || ''}
+            onChange={handleChange}
+            placeholder="Enter mobile number"
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
           />
         </div>

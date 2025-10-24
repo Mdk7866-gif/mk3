@@ -1,6 +1,7 @@
 // src/app/api/mushahidsavequotation/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ServerApiVersion } from 'mongodb';
+import QRCode from 'qrcode';
 
 // Define the expected shape of a single item
 interface Item {
@@ -16,7 +17,8 @@ interface QuotationData {
   date: string; // Format: DD/MM/YYYY
   clientName: string;
   clientAddress: string;
-  contact: string; // Email or mobile
+  email?: string; // Optional
+  mobile?: string; // Optional
   gstin?: string; // Optional
   notes?: string; // Optional
   items: Item[];
@@ -70,12 +72,12 @@ export async function POST(req: NextRequest) {
       !body.date ||
       !body.clientName ||
       !body.clientAddress ||
-      !body.contact ||
+      (!body.email && !body.mobile) || // At least one of email or mobile required
       !body.items ||
       body.items.length === 0
     ) {
       return NextResponse.json(
-        { message: 'Missing required fields: date, clientName, clientAddress, contact, and items are required' },
+        { message: 'Missing required fields: date, clientName, clientAddress, at least one of email or mobile, and items are required' },
         { status: 400 }
       );
     }
@@ -91,7 +93,12 @@ export async function POST(req: NextRequest) {
 
     // Validate items
     for (const item of body.items) {
-      if (!item.no || !item.description || !item.quantity || !item.rate) {
+      if (
+        !item.no ||
+        !item.description ||
+        !item.quantity ||
+        !item.rate
+      ) {
         return NextResponse.json(
           { message: 'Each item must have no, description, quantity, and rate' },
           { status: 400 }
@@ -109,16 +116,25 @@ export async function POST(req: NextRequest) {
     // Generate quotation number
     const quotationNumber = await generateQuotationNumber(db, year);
 
+    // Generate QR code (encoding the verify endpoint URL with quotationNumber)
+    const qrCodeDataURL = await QRCode.toDataURL(`http://localhost:3000/verifyqrcodefrontend?invoiceNumber=${quotationNumber}`);
+
+    // Dummy PDF link (replace with actual Cloudinary link later)
+    const pdfLink = `https://res.cloudinary.com/your-cloud-name/image/upload/v${Date.now()}/dummy-quotation-${quotationNumber}.pdf`;
+
     // Prepare the document to insert
     const document = {
       invoiceNumber: quotationNumber,
       date: body.date,
       clientName: body.clientName,
       clientAddress: body.clientAddress,
-      contact: body.contact,
+      email: body.email || '',
+      mobile: body.mobile || '',
       gstin: body.gstin || '', // Default to empty string if not provided
       notes: body.notes || '', // Default to empty string if not provided
       items: body.items,
+      qrCode: qrCodeDataURL, // Base64 QR code image
+      pdfLink,
       createdAt: new Date(),
     };
 

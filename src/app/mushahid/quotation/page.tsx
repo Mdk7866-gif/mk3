@@ -11,7 +11,8 @@ interface QuotationData {
   date: string; // DD/MM/YYYY
   clientName: string;
   clientAddress: string;
-  contact: string;
+  email?: string;
+  mobile?: string;
   gstin?: string;
   notes?: string;
   items: Array<{
@@ -40,8 +41,8 @@ const CreateQuotationPage: React.FC = () => {
 
   // Function to gather and validate quotation data
   const getQuotationPayload = (): QuotationData | null => {
-    if (!clientData || !clientData.clientName || !clientData.clientAddress || !clientData.contact) {
-      toast.error('Client Name, Address, and Contact are required.', { id: 'quotationError' });
+    if (!clientData || !clientData.clientName || !clientData.clientAddress || (!clientData.email && !clientData.mobile)) {
+      toast.error('Client Name, Address, and at least one of Email or Mobile are required.', { id: 'quotationError' });
       return null;
     }
 
@@ -62,7 +63,8 @@ const CreateQuotationPage: React.FC = () => {
       date: formattedDate,
       clientName: clientData.clientName,
       clientAddress: clientData.clientAddress,
-      contact: clientData.contact,
+      email: clientData.email || '',
+      mobile: clientData.mobile || '',
       gstin: clientData.gstin || '',
       notes: clientData.notes || '',
       items: validItems.map(item => ({
@@ -99,25 +101,6 @@ const CreateQuotationPage: React.FC = () => {
       // Simulate generating PDF (dummy endpoint)
       console.log('Attempting to generate PDF for quotation:', quotationPayload);
       await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate network delay
-      // --- Replace with actual fetch to your Next.js API route ---
-      // const pdfResponse = await fetch('/api/mushahid/quotation/generate-pdf', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(quotationPayload),
-      // });
-      // if (!pdfResponse.ok) {
-      //   const errorData = await pdfResponse.json();
-      //   throw new Error(errorData.message || 'Failed to generate PDF');
-      // }
-      // const blob = await pdfResponse.blob();
-      // const url = window.URL.createObjectURL(blob);
-      // const a = document.createElement('a');
-      // a.href = url;
-      // a.download = `quotation_mushahid_${clientData?.clientName.replace(/\s/g, '_') || 'document'}.pdf`;
-      // document.body.appendChild(a);
-      // a.click();
-      // a.remove();
-      // window.URL.revokeObjectURL(url);
       console.log('PDF generated (dummy). Data:', quotationPayload);
 
       toast.success(`Quotation saved and PDF generated successfully! (ID: ${saveResult.invoiceNumber})`, {
@@ -145,9 +128,9 @@ const CreateQuotationPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-4 mt-8">
           <button
             onClick={handleGeneratePdfAndSave}
-            disabled={isProcessing || !clientData || quotationItems.length === 0}
+            disabled={isProcessing || !clientData || !clientData.clientName || !clientData.clientAddress || (!clientData.email && !clientData.mobile) || quotationItems.length === 0}
             className={`w-full sm:w-auto px-6 py-3 rounded-md text-lg font-semibold shadow-md transition-colors duration-200
-              ${isProcessing || !clientData || quotationItems.length === 0
+              ${isProcessing || !clientData || !clientData.clientName || !clientData.clientAddress || (!clientData.email && !clientData.mobile) || quotationItems.length === 0
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-green-600 hover:bg-green-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2'
               }`}

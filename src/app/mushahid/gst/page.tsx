@@ -11,7 +11,8 @@ interface GstInvoiceData {
   date: string; // DD/MM/YYYY
   clientName: string;
   clientAddress: string;
-  contact: string;
+  email?: string;
+  mobile?: string;
   gstin?: string;
   notes?: string;
   items: Array<{
@@ -60,8 +61,8 @@ function CreateGstInvoicePage() {
   }, []);
 
   const getGstInvoicePayload = (): GstInvoiceData | null => {
-    if (!clientData || !clientData.clientName || !clientData.clientAddress || !clientData.contact || !gstItems.length || !gstTotals) {
-      toast.error('Client Name, Address, Contact, and at least one item are required.', { id: 'gstError' });
+    if (!clientData || !clientData.clientName || !clientData.clientAddress || (!clientData.email && !clientData.mobile) || !gstItems.length || !gstTotals) {
+      toast.error('Client Name, Address, at least one of Email or Mobile, and at least one item are required.', { id: 'gstError' });
       return null;
     }
 
@@ -82,7 +83,8 @@ function CreateGstInvoicePage() {
       date: formattedDate,
       clientName: clientData.clientName,
       clientAddress: clientData.clientAddress,
-      contact: clientData.contact,
+      email: clientData.email || '',
+      mobile: clientData.mobile || '',
       gstin: clientData.gstin || '',
       notes: clientData.notes || '',
       items: validItems.map(item => ({

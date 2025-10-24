@@ -36,7 +36,8 @@ interface InvoiceData {
   date: string; // DD/MM/YYYY
   clientName: string;
   clientAddress: string;
-  contact: string;
+  email?: string;
+  mobile?: string;
   gstin?: string;
   notes?: string;
   items: Array<{
@@ -71,8 +72,8 @@ export default function MustakInvoicePage() {
 
   // Function to gather all invoice data with validation
   const getFullInvoiceData = (): InvoiceData | null => {
-    if (!clientData || !clientData.clientName || !clientData.clientAddress) {
-      toast.error('Client Name and Address are required.', { id: 'invoiceError' });
+    if (!clientData || !clientData.clientName || !clientData.clientAddress || (!clientData.email && !clientData.mobile)) {
+      toast.error('Client Name, Address, and at least one of Email or Mobile are required.', { id: 'invoiceError' });
       return null;
     }
     // Filter out items with no description or invalid amounts
@@ -90,7 +91,8 @@ export default function MustakInvoicePage() {
       date: formattedDate,
       clientName: clientData.clientName,
       clientAddress: clientData.clientAddress,
-      contact: clientData.contact,
+      email: clientData.email || '',
+      mobile: clientData.mobile || '',
       gstin: clientData.gstin || '',
       notes: clientData.notes || '',
       items: validItems.map(item => ({
@@ -132,25 +134,6 @@ export default function MustakInvoicePage() {
       // Simulate generating PDF (dummy endpoint)
       console.log('Attempting to generate PDF for invoice data:', fullInvoiceData);
       await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate network delay
-      // --- Replace with actual fetch to your Next.js API route ---
-      // const pdfResponse = await fetch('/api/mustak/invoice/generate-pdf', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(fullInvoiceData),
-      // });
-      // if (!pdfResponse.ok) {
-      //   const errorData = await pdfResponse.json();
-      //   throw new Error(errorData.message || 'Failed to generate PDF');
-      // }
-      // const blob = await pdfResponse.blob();
-      // const url = window.URL.createObjectURL(blob);
-      // const a = document.createElement('a');
-      // a.href = url;
-      // a.download = `invoice_mustak_${clientData?.clientName.replace(/\s/g, '_') || 'document'}.pdf`;
-      // document.body.appendChild(a);
-      // a.click();
-      // a.remove();
-      // window.URL.revokeObjectURL(url);
       console.log('PDF generated (dummy). Data:', fullInvoiceData);
 
       toast.success(`Invoice saved and PDF generated successfully! (ID: ${saveResult.invoiceNumber})`, {
@@ -182,9 +165,9 @@ export default function MustakInvoicePage() {
           <button
             type="button"
             onClick={handleGeneratePdfAndSave}
-            disabled={isProcessing || !clientData || invoiceItems.length === 0}
+            disabled={isProcessing || !clientData || !clientData.clientName || !clientData.clientAddress || (!clientData.email && !clientData.mobile) || invoiceItems.length === 0}
             className={`flex items-center justify-center px-8 py-3 rounded-md text-lg font-semibold shadow-md transition-colors duration-200 w-full sm:w-auto
-              ${isProcessing || !clientData || invoiceItems.length === 0
+              ${isProcessing || !clientData || !clientData.clientName || !clientData.clientAddress || (!clientData.email && !clientData.mobile) || invoiceItems.length === 0
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-green-600 hover:bg-green-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2'
               }`}
@@ -224,7 +207,7 @@ export default function MustakInvoicePage() {
         )}
       </div>
       <div className="text-center mt-12">
-        <Link href="/" className="text-blue-600 hover:underline text-lg">
+        <Link href="/mustak" className="text-blue-600 hover:underline text-lg">
           ← Back to Home
         </Link>
       </div>

@@ -1,5 +1,8 @@
+// src/app/api/mushahidsaveinvoice/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ServerApiVersion } from 'mongodb';
+import QRCode from 'qrcode';
 
 // Define the expected shape of a single item
 interface Item {
@@ -16,7 +19,8 @@ interface InvoiceData {
   date: string; // Format: DD/MM/YYYY
   clientName: string;
   clientAddress: string;
-  contact: string; // Email or mobile
+  email?: string; // Optional
+  mobile?: string; // Optional
   gstin?: string; // Optional
   notes?: string; // Optional
   items: Item[];
@@ -72,14 +76,14 @@ export async function POST(req: NextRequest) {
       !body.date ||
       !body.clientName ||
       !body.clientAddress ||
-      !body.contact ||
+      (!body.email && !body.mobile) || // At least one of email or mobile required
       !body.items ||
       body.items.length === 0 ||
       !body.totalAmount ||
       !body.amountInWords
     ) {
       return NextResponse.json(
-        { message: 'Missing required fields: date, clientName, clientAddress, contact, items, totalAmount, and amountInWords are required' },
+        { message: 'Missing required fields: date, clientName, clientAddress, at least one of email or mobile, items, totalAmount, and amountInWords are required' },
         { status: 400 }
       );
     }
@@ -119,18 +123,27 @@ export async function POST(req: NextRequest) {
     // Generate invoice number
     const invoiceNumber = await generateInvoiceNumber(db, year);
 
+    // Generate QR code (encoding the verify endpoint URL with invoiceNumber)
+    const qrCodeDataURL = await QRCode.toDataURL(`http://localhost:3000/verifyqrcodefrontend?invoiceNumber=${invoiceNumber}`);
+
+    // Dummy PDF link (replace with actual Cloudinary link later)
+    const pdfLink = `https://res.cloudinary.com/your-cloud-name/image/upload/v${Date.now()}/dummy-invoice-${invoiceNumber}.pdf`;
+
     // Prepare the document to insert
     const document = {
       invoiceNumber,
       date: body.date,
       clientName: body.clientName,
       clientAddress: body.clientAddress,
-      contact: body.contact,
+      email: body.email || '',
+      mobile: body.mobile || '',
       gstin: body.gstin || '', // Default to empty string if not provided
       notes: body.notes || '', // Default to empty string if not provided
       items: body.items,
       totalAmount: body.totalAmount,
       amountInWords: body.amountInWords,
+      qrCode: qrCodeDataURL, // Base64 QR code image
+      pdfLink,
       createdAt: new Date(),
     };
 

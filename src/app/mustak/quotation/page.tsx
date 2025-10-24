@@ -6,6 +6,24 @@ import ItemsDetailsQuotation, { QuotationItem } from '@/components/ItemsDetailsQ
 import Link from 'next/link';
 import { toast, Toaster } from 'react-hot-toast';
 
+// Define the shape of the quotation data (aligned with API)
+interface QuotationData {
+  date: string; // DD/MM/YYYY
+  clientName: string;
+  clientAddress: string;
+  email?: string;
+  mobile?: string;
+  gstin?: string;
+  notes?: string;
+  items: Array<{
+    no: number;
+    description: string;
+    hsn?: string;
+    quantity: number;
+    rate: number;
+  }>;
+}
+
 const CreateMustakQuotationPage: React.FC = () => {
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [quotationItems, setQuotationItems] = useState<QuotationItem[]>([]);
@@ -21,36 +39,51 @@ const CreateMustakQuotationPage: React.FC = () => {
     setQuotationItems(items);
   }, []);
 
-  // Handle save & PDF generation
-  const handleGeneratePdfAndSave = async () => {
-    if (!clientData || quotationItems.length === 0) {
-      toast.error('Please fill in client details and add at least one item.', { id: 'mustakQuotation' });
-      return;
+  // Function to gather and validate quotation data
+  const getQuotationPayload = (): QuotationData | null => {
+    if (!clientData || !clientData.clientName || !clientData.clientAddress || (!clientData.email && !clientData.mobile)) {
+      toast.error('Client Name, Address, and at least one of Email or Mobile are required.', { id: 'quotationError' });
+      return null;
     }
 
-    // Convert date from yyyy-mm-dd → dd/mm/yyyy
-    const [year, month, day] = clientData.date?.split('-') || ['', '', ''];
-    const formattedDate = `${day}/${month}/${year}`;
+    // Filter out invalid items (missing description or invalid quantity/rate)
+    const validItems = quotationItems.filter(
+      item => item.description.trim() !== '' && item.quantity !== '' && item.rate !== ''
+    );
+    if (validItems.length === 0) {
+      toast.error('Please add at least one valid work item with description, quantity, and rate.', { id: 'quotationError' });
+      return null;
+    }
 
-    const quotationPayload = {
+    // Convert date from YYYY-MM-DD to DD/MM/YYYY
+    const dateParts = clientData.date.split('-');
+    const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+
+    return {
       date: formattedDate,
-      clientName: clientData.clientName || '',
-      clientAddress: clientData.clientAddress || '',
-      contact: clientData.contact || '',
+      clientName: clientData.clientName,
+      clientAddress: clientData.clientAddress,
+      email: clientData.email || '',
+      mobile: clientData.mobile || '',
       gstin: clientData.gstin || '',
       notes: clientData.notes || '',
-      items: quotationItems.map((item) => ({
+      items: validItems.map(item => ({
         no: item.no,
         description: item.description,
         hsn: item.hsn || '',
-        quantity: item.quantity === '' ? 0 : Number(item.quantity),
-        rate: item.rate === '' ? 0 : Number(item.rate),
+        quantity: typeof item.quantity === 'string' ? parseFloat(item.quantity) || 0 : item.quantity,
+        rate: typeof item.rate === 'string' ? parseFloat(item.rate) || 0 : item.rate,
       })),
     };
+  };
 
-    console.log('📤 Sending quotation payload:', quotationPayload);
-    toast.loading('Saving and generating PDF...', { id: 'mustakQuotation' });
+  // Handle save & PDF generation
+  const handleGeneratePdfAndSave = async () => {
+    const quotationPayload = getQuotationPayload();
+    if (!quotationPayload) return;
+
     setIsProcessing(true);
+    toast.loading('Saving and generating PDF...', { id: 'mustakQuotation' });
 
     try {
       const saveResponse = await fetch('/api/mustaksavequotation', {
@@ -64,17 +97,20 @@ const CreateMustakQuotationPage: React.FC = () => {
         throw new Error(errorData.message || 'Failed to save quotation');
       }
 
-      const result = await saveResponse.json();
-      console.log('✅ Quotation saved successfully:', result);
+      const saveResult = await saveResponse.json();
+      console.log('Quotation saved:', saveResult);
 
-      // Simulate PDF generation (replace with actual endpoint later)
+      // Simulate generating PDF (dummy endpoint)
+      console.log('Attempting to generate PDF for quotation:', quotationPayload);
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      console.log('📄 PDF generated (dummy).');
+      console.log('PDF generated (dummy). Data:', quotationPayload);
 
-      toast.success('Quotation saved and PDF generated successfully!', { id: 'mustakQuotation' });
+      toast.success(`Quotation saved and PDF generated successfully! (ID: ${saveResult.invoiceNumber})`, {
+        id: 'mustakQuotation',
+      });
     } catch (error: any) {
-      console.error('❌ Error while saving quotation:', error);
-      toast.error(`Error: ${error.message || 'Failed to save quotation'}`, { id: 'mustakQuotation' });
+      console.error('Error processing quotation:', error);
+      toast.error(`Error: ${error.message || 'Failed to save quotation or generate PDF'}`, { id: 'mustakQuotation' });
     } finally {
       setIsProcessing(false);
     }
@@ -94,12 +130,11 @@ const CreateMustakQuotationPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-4 mt-8">
           <button
             onClick={handleGeneratePdfAndSave}
-            disabled={isProcessing || !clientData || quotationItems.length === 0}
+            disabled={isProcessing || !clientData || !clientData.clientName || !clientData.clientAddress || (!clientData.email && !clientData.mobile) || quotationItems.length === 0}
             className={`w-full sm:w-auto px-6 py-3 rounded-md text-lg font-semibold shadow-md transition-colors duration-200
-              ${
-                isProcessing || !clientData || quotationItems.length === 0
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2'
+              ${isProcessing || !clientData || !clientData.clientName || !clientData.clientAddress || (!clientData.email && !clientData.mobile) || quotationItems.length === 0
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2'
               }`}
           >
             {isProcessing ? (
