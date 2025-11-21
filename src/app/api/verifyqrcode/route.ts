@@ -6,7 +6,19 @@ import { MongoClient, ServerApiVersion } from 'mongodb';
 // MongoDB connection URI from environment variables
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const dbName = 'mk3';
-const collectionName = 'mushahidgst';
+
+const COLLECTION_MAP: Record<string, Record<string, string>> = {
+  mushahid: {
+    gst: 'mushahidgst',
+    invoice: 'mushahidinvoice',
+    quotation: 'mushahidquotation',
+  },
+  mustak: {
+    gst: 'mustakgst',
+    invoice: 'mustakinvoice',
+    quotation: 'mustakquotation',
+  },
+};
 
 // Create a MongoDB client
 const client = new MongoClient(uri, {
@@ -19,56 +31,68 @@ const client = new MongoClient(uri, {
 
 // GET handler for the /api/verifyqrcode endpoint
 export async function GET(req: NextRequest) {
-  try {
-    // Extract invoiceNumber from query parameter
-    const invoiceNumber = req.nextUrl.searchParams.get('invoiceNumber');
-    if (!invoiceNumber) {
-      return NextResponse.json(
-        { message: 'Invoice number is required in query parameter: ?invoiceNumber=INV-YYYY-NNN' },
-        { status: 400 }
-      );
-    }
+  const invoiceNumber = req.nextUrl.searchParams.get('invoiceNumber');
+  const issuer = req.nextUrl.searchParams.get('issuer') || undefined;
+  const requestedType = req.nextUrl.searchParams.get('type') || undefined;
 
-    // Connect to MongoDB
+  if (!invoiceNumber) {
+    return NextResponse.json(
+      { message: 'Invoice number is required in query parameter: ?invoiceNumber=INV-YYYY-NNN' },
+      { status: 400 }
+    );
+  }
+
+  try {
     await client.connect();
     const db = client.db(dbName);
-    const collection = db.collection(collectionName);
 
-    // Query the database for the invoice
-    const invoice = await collection.findOne({ invoiceNumber });
+    const searchIssuers = issuer ? [issuer] : Object.keys(COLLECTION_MAP);
+    let resolvedInvoice: Record<string, any> | null = null;
+    let resolvedIssuer = issuer;
+    let resolvedType = requestedType;
 
-    // Close the MongoDB connection
-    await client.close();
+    for (const issuerKey of searchIssuers) {
+      const collectionsForIssuer = COLLECTION_MAP[issuerKey];
+      if (!collectionsForIssuer) {
+        continue;
+      }
 
-    if (!invoice) {
+      const searchTypes = requestedType ? [requestedType] : Object.keys(collectionsForIssuer);
+      for (const typeKey of searchTypes) {
+        const collectionName = collectionsForIssuer[typeKey];
+        if (!collectionName) {
+          continue;
+        }
+        const collection = db.collection(collectionName);
+        const invoice = await collection.findOne({ invoiceNumber });
+        if (invoice) {
+          resolvedInvoice = invoice;
+          resolvedIssuer = issuerKey;
+          resolvedType = typeKey;
+          break;
+        }
+      }
+
+      if (resolvedInvoice) {
+        break;
+      }
+    }
+
+    if (!resolvedInvoice) {
       return NextResponse.json(
         { message: `Invoice with number ${invoiceNumber} not found.` },
         { status: 404 }
       );
     }
 
-    // Formal response with invoice details
+    const { _id, ...publicInvoice } = resolvedInvoice;
+
     const response = {
       verified: true,
       message: `Invoice verification successful. The following details have been confirmed from our records:`,
-      invoiceNumber: invoice.invoiceNumber,
-      date: invoice.date,
-      clientName: invoice.clientName,
-      clientAddress: invoice.clientAddress,
-      email: invoice.email,
-      mobile: invoice.mobile,
-      gstin: invoice.gstin,
-      notes: invoice.notes,
-      items: invoice.items,
-      totalAmountBeforeTax: invoice.totalAmountBeforeTax,
-      cgst: invoice.cgst,
-      sgst: invoice.sgst,
-      totalTaxAmount: invoice.totalTaxAmount,
-      totalAmountAfterTax: invoice.totalAmountAfterTax,
-      amountInWords: invoice.amountInWords,
-      pdfLink: invoice.pdfLink,
-      qrCode: invoice.qrCode, // Optional: include if needed for display
-      createdAt: invoice.createdAt,
+      issuer: resolvedIssuer,
+      documentType: resolvedType,
+      ...publicInvoice,
     };
 
     return NextResponse.json(response, { status: 200 });
@@ -78,5 +102,7 @@ export async function GET(req: NextRequest) {
       { message: `Verification failed: ${error.message || 'Unknown error'}` },
       { status: 500 }
     );
+  } finally {
+    await client.close().catch(() => {});
   }
 }

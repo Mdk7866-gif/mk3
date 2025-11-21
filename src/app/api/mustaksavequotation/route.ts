@@ -116,8 +116,14 @@ export async function POST(req: NextRequest) {
     // Generate quotation number
     const quotationNumber = await generateQuotationNumber(db, year);
 
+    const issuer = 'mustak';
+    const documentType = 'quotation';
+    const verifyRoute = 'verifyqrcodefrontendmustak';
+
     // Generate QR code (encoding the verify endpoint URL with quotationNumber)
-    const qrCodeDataURL = await QRCode.toDataURL(`http://localhost:3000/verifyqrcodefrontend?invoiceNumber=${quotationNumber}`);
+    const qrCodeDataURL = await QRCode.toDataURL(
+      `http://localhost:3000/${verifyRoute}?invoiceNumber=${quotationNumber}&type=${documentType}`
+    );
 
     // Dummy PDF link (replace with actual Cloudinary link later)
     const pdfLink = `https://res.cloudinary.com/your-cloud-name/image/upload/v${Date.now()}/dummy-quotation-${quotationNumber}.pdf`;
@@ -125,6 +131,8 @@ export async function POST(req: NextRequest) {
     // Prepare the document to insert
     const document = {
       invoiceNumber: quotationNumber,
+      issuer,
+      documentType,
       date: body.date,
       clientName: body.clientName,
       clientAddress: body.clientAddress,

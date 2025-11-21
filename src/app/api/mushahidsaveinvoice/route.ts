@@ -123,8 +123,14 @@ export async function POST(req: NextRequest) {
     // Generate invoice number
     const invoiceNumber = await generateInvoiceNumber(db, year);
 
+    const issuer = 'mushahid';
+    const documentType = 'invoice';
+    const verifyRoute = 'verifyqrcodefrontendmushahid';
+
     // Generate QR code (encoding the verify endpoint URL with invoiceNumber)
-    const qrCodeDataURL = await QRCode.toDataURL(`http://localhost:3000/verifyqrcodefrontend?invoiceNumber=${invoiceNumber}`);
+    const qrCodeDataURL = await QRCode.toDataURL(
+      `http://localhost:3000/${verifyRoute}?invoiceNumber=${invoiceNumber}&type=${documentType}`
+    );
 
     // Dummy PDF link (replace with actual Cloudinary link later)
     const pdfLink = `https://res.cloudinary.com/your-cloud-name/image/upload/v${Date.now()}/dummy-invoice-${invoiceNumber}.pdf`;
@@ -132,6 +138,8 @@ export async function POST(req: NextRequest) {
     // Prepare the document to insert
     const document = {
       invoiceNumber,
+      issuer,
+      documentType,
       date: body.date,
       clientName: body.clientName,
       clientAddress: body.clientAddress,
