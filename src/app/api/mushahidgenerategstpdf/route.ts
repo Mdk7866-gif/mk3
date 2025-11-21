@@ -264,16 +264,19 @@ function buildInvoiceHtml(invoice: any) {
         <div style="font-size:11px;color:#374151;margin-top:6px;">
           Bank Name: SBIBANK-SHAHALAMGATE<br/>
           A/C: 30391756262<br/>
-          IFSC: SBIN0003046
+          IFSC: SBIN0003046<br/>
+          Pan No: BEQPK9997B
         </div>
 
-        <div style="margin-top:10px;font-size:11px;color:#4b5563">
-          <strong>Terms & Conditions:</strong>
-          <div style="margin-top:6px;">
-            1. Goods once sold will not be taken back.<br/>
-            2. All disputes subject to Ahmedabad jurisdiction.
-          </div>
-        </div>
+       <div style="margin-top:10px;font-size:11px;color:#4b5563">
+  <strong>Terms &amp; Conditions:</strong>
+  <div style="margin-top:6px; line-height:1.5; text-transform:uppercase;">
+    1.) SUBJECT TO AHMEDABAD JURISDICTION.<br/>
+    2.) ANY TAXES APPLICABLE WILL BE BORNE BY THE CUSTOMER.<br/>
+    3.) PLEASE PAY BY CASH / CROSSED CHEQUE / UPI / NETBANKING ONLY.<br/>
+    4.) PLEASE MAKE CHEQUE PAYMENTS PAYABLE TO THE APPROPRIATE BENEFICIARY AS ADVISED.
+  </div>
+</div>
       </div>
 
       <div class="totals" role="note" aria-label="Tax Summary">
