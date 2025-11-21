@@ -4,9 +4,17 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { usePathname } from 'next/navigation';
 
+const HIDE_LAYOUT_PREFIXES = [
+  '/verifyqrcodefrontend',
+  '/verifyqrcodefrontendmushahid',
+  '/verifyqrcodefrontendmustak',
+];
+
 export default function LayoutWrapper({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const hideLayout = pathname === '/verifyqrcodefrontend';
+  const hideLayout = HIDE_LAYOUT_PREFIXES.some(
+    (prefix) => pathname && pathname.startsWith(prefix)
+  );
 
   return (
     <>
