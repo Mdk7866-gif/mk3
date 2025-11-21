@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ServerApiVersion } from 'mongodb';
-import puppeteer from 'puppeteer';
+import puppeteer, { Page } from 'puppeteer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,6 +11,20 @@ export const dynamic = 'force-dynamic';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DB_NAME = 'mk3';
 const COLLECTION_NAME = 'mushahidgst';
+
+const vercelUrl = process.env.VERCEL_URL;
+const normalizedVercelUrl = vercelUrl
+  ? vercelUrl.startsWith('http')
+    ? vercelUrl
+    : `https://${vercelUrl}`
+  : null;
+
+const DEFAULT_PUBLIC_BASE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  process.env.SITE_URL ||
+  normalizedVercelUrl ||
+  'https://mk3.vercel.app';
 
 const client = new MongoClient(MONGODB_URI, {
   serverApi: {
@@ -116,6 +130,63 @@ function loadLocalImageAsDataURI(relPath: string): string | null {
   }
 }
 
+function buildVerificationUrl(invoice: any): string | null {
+  const rawUrl = invoice?.verificationUrl || invoice?.verifyUrl || invoice?.qrLink;
+  if (typeof rawUrl === 'string' && rawUrl.length > 4) return rawUrl;
+
+  const invoiceNumber = invoice?.invoiceNumber;
+  if (!invoiceNumber) return null;
+
+  const issuer = (invoice?.issuer || '').toLowerCase();
+  const pathname =
+    issuer === 'mushahid'
+      ? '/verifyqrcodefrontendmushahid'
+      : issuer === 'mustak'
+      ? '/verifyqrcodefrontendmustak'
+      : '/verifyqrcodefrontendmushahid';
+
+  const url = new URL(pathname, DEFAULT_PUBLIC_BASE_URL.startsWith('http') ? DEFAULT_PUBLIC_BASE_URL : `https://${DEFAULT_PUBLIC_BASE_URL}`);
+  url.searchParams.set('invoiceNumber', invoiceNumber);
+  if (invoice?.documentType) {
+    url.searchParams.set('type', invoice.documentType);
+  }
+  url.searchParams.set('issuer', issuer || 'mushahid');
+  return url.toString();
+}
+
+function buildPaymentLinks(invoice: any): { primary: string; deepLink?: string } | null {
+  const direct =
+    invoice?.paymentLink ||
+    invoice?.paymentUrl ||
+    invoice?.paymentPage ||
+    invoice?.phonePeLink ||
+    invoice?.gpayLink ||
+    invoice?.paytmLink;
+  if (typeof direct === 'string' && direct.length > 4) {
+    return { primary: direct };
+  }
+
+  const upiIdRaw = invoice?.upiId || invoice?.upi || '9979131416@ybl';
+  const upiId = upiIdRaw.replace(/\s+/g, '');
+  const payeeName = invoice?.upiName || invoice?.clientName || 'MUSTAK KHAN';
+  const amount = invoice?.totalAmountAfterTax || invoice?.totalAmount;
+
+  const upiParams = new URLSearchParams({
+    pa: upiId,
+    pn: payeeName,
+    cu: 'INR',
+    mode: '02',
+  });
+  if (amount) {
+    upiParams.set('am', String(amount));
+  }
+
+  const httpsLink = `https://upi.me/pay?${upiParams.toString()}`;
+  const deepLink = `upi://pay?${upiParams.toString()}`;
+
+  return { primary: httpsLink, deepLink };
+}
+
 /**
  * Build invoice HTML — formal, high-contrast, professional.
  * Embeds invoice.qrCode (or invoice.qr) and a PhonePe QR from public/phonepe-qr.jpg
@@ -123,6 +194,15 @@ function loadLocalImageAsDataURI(relPath: string): string | null {
 function buildInvoiceHtml(invoice: any) {
   const qrDataUri = getQrDataUri(invoice.qrCode ?? invoice.qr);
   const phonePeQr = loadLocalImageAsDataURI('phonepe-qr.jpg');
+  const verificationUrl = buildVerificationUrl(invoice);
+  const paymentLinks = buildPaymentLinks(invoice);
+  const itemsCount = (invoice.items || []).length;
+  const densityClass =
+    itemsCount > 34
+      ? 'density-ultra'
+      : itemsCount > 24
+      ? 'density-compact'
+      : 'density-regular';
 
   const itemsRows = (invoice.items || [])
     .map(
@@ -141,12 +221,26 @@ function buildInvoiceHtml(invoice: any) {
     )
     .join('');
 
-  const qrHtml = qrDataUri
+  const qrImage = qrDataUri
     ? `<img alt="Invoice QR" src="${qrDataUri}" style="width:88px;height:88px;display:block;margin:0 auto;" decoding="async" />`
     : `<div style="font-size:11px;color:#6b7280;text-align:center">QR Not Available</div>`;
 
+  const qrHtml = verificationUrl
+    ? `<a href="${verificationUrl}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;color:inherit;display:block;">
+        ${qrImage}
+        <div style="font-size:10px;text-align:center;color:#0f172a;margin-top:4px;">Scan or tap to verify</div>
+      </a>`
+    : qrImage;
+
+  const paymentHref = paymentLinks?.primary || '#';
   const phonePeHtml = phonePeQr
-    ? `<img alt="PhonePe QR" src="${phonePeQr}" style="width:120px;height:auto;display:block;margin:0 auto;border-radius:6px;" decoding="async" />`
+    ? `<a href="${paymentHref}" ${paymentLinks ? 'target="_blank" rel="noopener noreferrer"' : ''} ${
+        paymentLinks?.deepLink ? `data-upi-link="${paymentLinks.deepLink}"` : ''
+      } style="display:block;text-decoration:none;color:inherit;">
+        <img alt="UPI Payment QR" src="${phonePeQr}" style="width:120px;height:auto;display:block;margin:0 auto;border-radius:6px;" decoding="async" />
+        <div style="font-size:10px;color:#0f172a;margin-top:6px;">Tap or scan to pay via UPI</div>
+        <div style="font-size:9.5px;color:#475569;">Works with PhonePe, Google Pay &amp; Paytm</div>
+      </a>`
     : `<div style="font-size:11px;color:#6b7280;text-align:center">PhonePe QR Not Found</div>`;
 
   // Terms & Conditions (from your provided content), uppercase and formal
@@ -269,12 +363,59 @@ function buildInvoiceHtml(invoice: any) {
     }
     .phonepe-box h5 { margin:0 0 8px 0; font-size:12px; color:#0b1220; }
 
+    .density-compact table.items td,
+    .density-compact table.items th { padding:7px 6px; font-size:10.5px; }
+    .density-compact .box { padding:8px; }
+    .density-compact .qr-holder { width:92px; height:92px; }
+    .density-compact .totals .row { padding:8px 10px; font-size:10.5px; }
+    .density-compact .header { padding-bottom:8px; margin-bottom:8px; }
+
+    .density-ultra table.items td,
+    .density-ultra table.items th { padding:5px 4px; font-size:9.6px; }
+    .density-ultra .box { padding:6px; }
+    .density-ultra body,
+    .density-ultra .container { font-size:10.6px; }
+    .density-ultra .title { margin:4px 0 8px; padding:6px 0; }
+    .density-ultra .meta { margin-bottom:6px; }
+    .density-ultra .totals .row { padding:6px 8px; font-size:9.6px; }
+    .density-ultra .sign-block { margin-top:12px; }
+
+    body.density-tight { font-size:10.4px; }
+    body.density-tight .container { padding:10px; }
+    body.density-tight table.items th,
+    body.density-tight table.items td { padding:5px 4px; font-size:9.4px; }
+    body.density-tight .header { padding-bottom:6px; margin-bottom:6px; }
+    body.density-tight .box { padding:6px; }
+    body.density-tight .meta { margin-bottom:6px; }
+    body.density-tight .totals .row { padding:5px 6px; font-size:9.4px; }
+    body.density-tight .phonepe-box { width:130px; padding:8px; }
+
+    body.density-micro { font-size:9.6px; }
+    body.density-micro table.items th,
+    body.density-micro table.items td { padding:4px 3px; font-size:8.8px; }
+    body.density-micro .title { font-size:13px; padding:4px 0; margin:2px 0 6px; }
+    body.density-micro .qr-holder { width:80px; height:80px; padding:4px; }
+    body.density-micro .totals .row { padding:4px 5px; font-size:8.8px; }
+    body.density-micro .sign-block { margin-top:8px; gap:12px; }
+
+    body.scale-tight .container {
+      transform: scale(0.975);
+      transform-origin: top center;
+      width: calc(100% / 0.975);
+    }
+
+    body.scale-micro .container {
+      transform: scale(0.95);
+      transform-origin: top center;
+      width: calc(100% / 0.95);
+    }
+
     @media print {
       .container { margin:0; border:none; border-radius:0; }
     }
   </style>
 </head>
-<body>
+<body class="${densityClass}">
   <div class="container">
     <div class="header">
       <div class="company">
@@ -370,7 +511,7 @@ function buildInvoiceHtml(invoice: any) {
       <div class="notes">
         ${invoice.amountInWords ? `<div style="font-weight:800;margin-bottom:6px">Amount in Words: ${invoice.amountInWords}</div>` : ''}
         <div style="font-size:11.2px;color:#475569;margin-top:6px;">
-          Certified that the particulars given above are true &amp; correct. For <strong>MUSTAK KHAN</strong>
+          Certified that the particulars given above are true &amp; correct. For <strong>MUSTAK KHAN</strong>. Use the top QR to validate authenticity instantly.
         </div>
         ${invoice.notes ? `<div style="margin-top:8px;font-size:11.2px;color:#374151;"><strong>Notes:</strong> ${invoice.notes}</div>` : ''}
       </div>
@@ -408,9 +549,9 @@ function buildInvoiceHtml(invoice: any) {
 /**
  * Wait for images to load on the page (safety timeout)
  */
-async function waitForImagesLoad(page: puppeteer.Page, timeoutMs = 6000) {
+async function waitForImagesLoad(page: Page, timeoutMs = 6000) {
   await page.evaluate(
-    (timeout) =>
+    (timeout: number) =>
       new Promise<void>((resolve) => {
         const imgs = Array.from(document.images || []);
         if (!imgs.length) return resolve();
@@ -456,7 +597,14 @@ export async function GET(_req: NextRequest) {
     const browser = await puppeteer.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
+    const cssPixelsPerInch = 96;
+    const a4WidthPx = 8.27 * cssPixelsPerInch;
+    const a4HeightPx = 11.69 * cssPixelsPerInch;
+    const baseWidthPx = Math.round(a4WidthPx);
+    const baseHeightPx = Math.round(a4HeightPx);
+
     const page = await browser.newPage();
+    await page.setViewport({ width: baseWidthPx, height: baseHeightPx });
 
     // Set HTML
     await page.setContent(html, { waitUntil: 'networkidle0' });
@@ -464,37 +612,63 @@ export async function GET(_req: NextRequest) {
     // Wait for all images (QRs) to load (or timeout)
     await waitForImagesLoad(page, 6000);
 
-    // Measure document height and scale to fit A4 if needed
-    const contentHeightPx = await page.evaluate(() => {
-      const el = document.documentElement || document.body;
-      return Math.max(el.scrollHeight, el.offsetHeight, el.clientHeight);
-    });
+    // Measure document height and shrink spacing if needed (no width scaling)
+    const measureContentHeight = async () =>
+      page.evaluate(() => {
+        const el = document.documentElement || document.body;
+        return Math.max(el.scrollHeight, el.offsetHeight, el.clientHeight);
+      });
 
-    // A4 height in inches is 11.69. Assuming 96dpi for CSS pixels
-    const cssPixelsPerInch = 96;
-    const a4HeightPx = 11.69 * cssPixelsPerInch; // ~1122px
+    let contentHeightPx = await measureContentHeight();
+
     const verticalMarginsPx = 10 + 10; // margins used in pdf options
     const availableHeight = a4HeightPx - verticalMarginsPx;
 
-    let scale = 1;
+    const extraDensityClasses = ['density-tight', 'density-micro'];
     if (contentHeightPx > availableHeight) {
-      scale = availableHeight / contentHeightPx;
-      // don't shrink below this threshold (keeps text readable)
-      scale = Math.max(scale, 0.55);
+      for (const density of extraDensityClasses) {
+        await page.evaluate((densityClass) => {
+          if (!document.body.classList.contains(densityClass)) {
+            document.body.classList.add(densityClass);
+          }
+        }, density);
+        await waitForImagesLoad(page, 500);
+        contentHeightPx = await measureContentHeight();
+        if (contentHeightPx <= availableHeight) break;
+      }
+    }
+
+    const scaleClasses = ['scale-tight', 'scale-micro'];
+    if (contentHeightPx > availableHeight) {
+      for (const scaleClass of scaleClasses) {
+        await page.evaluate((cls) => {
+          if (!document.body.classList.contains(cls)) {
+            document.body.classList.add(cls);
+          }
+        }, scaleClass);
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        contentHeightPx = await measureContentHeight();
+        if (contentHeightPx <= availableHeight) break;
+      }
     }
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: { top: '10px', right: '10px', bottom: '10px', left: '10px' },
-      scale,
+      scale: 1,
     });
 
     await browser.close();
 
     const fileName = `tax-invoice-${invoice.invoiceNumber || 'invoice'}.pdf`;
+    const pdfArrayBuffer = pdfBuffer.buffer.slice(
+      pdfBuffer.byteOffset,
+      pdfBuffer.byteOffset + pdfBuffer.byteLength
+    ) as ArrayBuffer;
+    const pdfBlob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfBlob, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
