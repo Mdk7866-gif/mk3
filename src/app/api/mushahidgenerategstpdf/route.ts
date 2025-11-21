@@ -198,10 +198,10 @@ function buildInvoiceHtml(invoice: any) {
     <div class="header">
       <div class="company">
         <h1>MUSTAK KHAN</h1>
-        <div class="muted">(An expert in ceiling design)</div>
-        <div class="muted">C.207 Marjan Residency No. Alpola Conael, Road Vatva, Ahmedabad - 382440</div>
-        <div style="margin-top:6px;font-size:12px;"><strong>Mob:</strong> 9979131416 &nbsp; <strong>Email:</strong> mustakbhaimrik510@gmail.com</div>
-        <div style="margin-top:6px;font-size:12px;"><strong>GSTIN:</strong> 24BEGPK9997B4Z-W</div>
+        <div class="muted">(All Type Of Ceiling Designs)</div>
+        <div class="muted">C-1/207 Marjan Residency Nr. Canal Road, Vatva Ahmedabad - 382440, Gujarat</div>
+        <div style="margin-top:6px;font-size:12px;"><strong>Mobile:</strong> 9979174216 &nbsp; <strong>Email:</strong> mustakkhan.mk550@gmail.com</div>
+        <div style="margin-top:6px;font-size:12px;"><strong>GSTIN:</strong> 24BEQPK9997B1ZW</div>
       </div>
 
       <div class="qrbox" aria-hidden="${qrDataUri ? 'false' : 'true'}">
@@ -221,10 +221,10 @@ function buildInvoiceHtml(invoice: any) {
         <h4>Company Details</h4>
         <div style="font-size:11px;">
           <strong>Name:</strong> MUSTAK KHAN<br/>
-          <strong>Address:</strong> C.207 Marjan Residency No. Alpola Conael Road Vatva Ahmedabad - 382440, Gujarat<br/>
-          <strong>Mobile:</strong> 9979131416<br/>
-          <strong>Email:</strong> mustakbhaimrik510@gmail.com<br/>
-          <strong>GSTIN:</strong> 24BEGPK9997B4Z-W
+          <strong>Address:</strong> C-1/207 Marjan Residency Nr. Canal Road, Vatva Ahmedabad - 382440, Gujarat<br/>
+          <strong>Mobile:</strong> 9979174216<br/>
+          <strong>Email:</strong> mustakkhan.mk550@gmail.com<br/>
+          <strong>GSTIN:</strong> 24BEQPK9997B1ZW
         </div>
       </div>
 
@@ -262,8 +262,8 @@ function buildInvoiceHtml(invoice: any) {
       <div style="flex:1;">
         <div style="font-size:11px;"><strong>Bank Details</strong></div>
         <div style="font-size:11px;color:#374151;margin-top:6px;">
-          Bank Name: SBI BANK - Shahjalam Gate<br/>
-          A/C: 30231750262<br/>
+          Bank Name: SBIBANK-SHAHALAMGATE<br/>
+          A/C: 30391756262<br/>
           IFSC: SBIN0003046
         </div>
 
