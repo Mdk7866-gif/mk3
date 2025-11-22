@@ -284,11 +284,11 @@ function buildInvoiceHtml(invoice: any) {
       <div class="company">
         <h1>MUSTAK KHAN</h1>
         <div class="muted" style="font-weight:500; color:#334155;">(An expert in ceiling design)</div>
-        <div class="muted">C.207 Marjan Residency No. Alpola Conael, Road Vatva, Ahmedabad - 382440</div>
+        <div class="muted">C-1/207 Marjan Residency Nr. Alkuba Canal Road, Vatva, Ahmedabad - 382440, Gujarat</div>
         <div style="margin-top:4px;font-size:11px;">
-          <strong>Mob:</strong> 9979131416 &nbsp;&nbsp;<strong>Email:</strong> mustakbhaimrik510@gmail.com
+          <strong>Mob:</strong> 9979174216 &nbsp;&nbsp;<strong>Email:</strong> mustakkhan.mk550@gmail.com
         </div>
-        <div style="margin-top:2px;font-size:11px;"><strong>GSTIN:</strong> 24BEGPK9997B4Z-W</div>
+        <div style="margin-top:2px;font-size:11px;"><strong>GSTIN:</strong> 24BEQPK9997B1ZW</div>
       </div>
       <div class="qr-holder" title="Invoice QR">${qrHtml}</div>
     </div>
@@ -305,10 +305,10 @@ function buildInvoiceHtml(invoice: any) {
         <h4>Company Details</h4>
         <div style="font-size:10.5px;color:#0b1220;line-height:1.25;">
           <strong>Name:</strong> MUSTAK KHAN<br/>
-          <strong>Address:</strong> C.207 Marjan Residency No. Alpola Conael Road Vatva Ahmedabad - 382440, Gujarat<br/>
-          <strong>Mobile:</strong> 9979131416<br/>
-          <strong>Email:</strong> mustakbhaimrik510@gmail.com<br/>
-          <strong>GSTIN:</strong> 24BEGPK9997B4Z-W
+          <strong>Address:</strong> C-1/207 Marjan Residency Nr. Alkuba Canal Road, Vatva, Ahmedabad - 382440, Gujarat<br/>
+          <strong>Mobile:</strong> 9979174216<br/>
+          <strong>Email:</strong> mustakkhan.mk550@gmail.com<br/>
+          <strong>GSTIN:</strong> 24BEQPK9997B1ZW
         </div>
       </div>
       <div class="box">
@@ -343,8 +343,8 @@ function buildInvoiceHtml(invoice: any) {
       <div class="bottom-left">
         <div style="font-size:11px;font-weight:700;color:#0b1220;text-transform:uppercase;margin-bottom:2px;">Bank Details</div>
         <div style="font-size:10.5px;color:#374151;line-height:1.25;">
-          Bank Name: SBI BANK - Shahjalam Gate<br/>
-          A/C: 30231750262 &nbsp;|&nbsp; IFSC: SBIN0003046
+          Bank Name: SBI BANK-SHAHALAM GATE<br/>
+          A/C: 30391756262 &nbsp;|&nbsp; IFSC: SBIN0003046
         </div>
         ${amountWordsHtml}
         <div style="margin-top:4px;font-size:9.5px;color:#374151;text-transform:uppercase;">
