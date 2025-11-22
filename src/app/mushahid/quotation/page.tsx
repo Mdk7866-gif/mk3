@@ -98,17 +98,32 @@ const CreateQuotationPage: React.FC = () => {
       const saveResult = await saveResponse.json();
       console.log('Quotation saved:', saveResult);
 
-      // Simulate generating PDF (dummy endpoint)
-      console.log('Attempting to generate PDF for quotation:', quotationPayload);
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate network delay
-      console.log('PDF generated (dummy). Data:', quotationPayload);
+      const generateResponse = await fetch('/api/mushahidgeneratequotationpdff', { method: 'GET' });
+      if (!generateResponse.ok) {
+        let message = 'Failed to generate PDF';
+        try {
+          const err = await generateResponse.json();
+          message = err.message || message;
+        } catch {}
+        throw new Error(message);
+      }
+      const pdfBlob = await generateResponse.blob();
+      const fileName = `quotation-${saveResult.invoiceNumber}.pdf`;
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast.success(`Quotation saved and PDF generated successfully! (ID: ${saveResult.invoiceNumber})`, {
         id: 'quotationAction',
       });
-    } catch (error: any) {
-      console.error('Error processing quotation:', error);
-      toast.error(`Error: ${error.message || 'Failed to save quotation or generate PDF'}`, { id: 'quotationAction' });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save quotation or generate PDF';
+      toast.error(`Error: ${message}`, { id: 'quotationAction' });
     } finally {
       setIsProcessing(false);
     }

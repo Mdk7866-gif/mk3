@@ -127,17 +127,32 @@ function CreateGstInvoicePage() {
       const saveResult = await saveResponse.json();
       console.log('GST invoice saved:', saveResult);
 
-      // Simulate generating PDF (dummy endpoint)
-      console.log('Attempting to generate PDF for GST invoice:', gstInvoicePayload);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      console.log('PDF generated (dummy). Data:', gstInvoicePayload);
+      const generateResponse = await fetch('/api/mushahidgenerategstpdff', { method: 'GET' });
+      if (!generateResponse.ok) {
+        let message = 'Failed to generate PDF';
+        try {
+          const err = await generateResponse.json();
+          message = err.message || message;
+        } catch {}
+        throw new Error(message);
+      }
+      const pdfBlob = await generateResponse.blob();
+      const fileName = `tax-invoice-${saveResult.invoiceNumber}.pdf`;
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast.success(`GST invoice saved and PDF generated successfully! (ID: ${saveResult.invoiceNumber})`, {
         id: 'gstAction',
       });
-    } catch (error: any) {
-      console.error('Error processing GST invoice:', error);
-      toast.error(`Error: ${error.message || 'Failed to save GST invoice or generate PDF'}`, { id: 'gstAction' });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save GST invoice or generate PDF';
+      toast.error(`Error: ${message}`, { id: 'gstAction' });
     } finally {
       setIsProcessing(false);
     }

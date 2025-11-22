@@ -132,38 +132,34 @@ export default function MushahidInvoicePage() {
       const saveResult = await saveResponse.json();
       console.log('Invoice saved:', saveResult);
 
-      // Simulate generating PDF (dummy endpoint)
-      console.log('Attempting to generate PDF for invoice data:', fullInvoiceData);
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate network delay
-      // --- Replace with actual fetch to your Next.js API route ---
-      // const pdfResponse = await fetch('/api/mushahid/invoice/generate-pdf', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(fullInvoiceData),
-      // });
-      // if (!pdfResponse.ok) {
-      //   const errorData = await pdfResponse.json();
-      //   throw new Error(errorData.message || 'Failed to generate PDF');
-      // }
-      // const blob = await pdfResponse.blob();
-      // const url = window.URL.createObjectURL(blob);
-      // const a = document.createElement('a');
-      // a.href = url;
-      // a.download = `invoice_mushahid_${clientData?.clientName.replace(/\s/g, '_') || 'document'}.pdf`;
-      // document.body.appendChild(a);
-      // a.click();
-      // a.remove();
-      // window.URL.revokeObjectURL(url);
-      console.log('PDF generated (dummy). Data:', fullInvoiceData);
+      const generateResponse = await fetch('/api/mushahidgenerateinvoicepdff', { method: 'GET' });
+      if (!generateResponse.ok) {
+        let message = 'Failed to generate PDF';
+        try {
+          const err = await generateResponse.json();
+          message = err.message || message;
+        } catch {}
+        throw new Error(message);
+      }
+      const pdfBlob = await generateResponse.blob();
+      const fileName = `invoice-${saveResult.invoiceNumber}.pdf`;
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast.success(`Invoice saved and PDF generated successfully! (ID: ${saveResult.invoiceNumber})`, {
         id: 'invoiceAction',
       });
       setMessage(`Invoice saved and PDF generated successfully! (ID: ${saveResult.invoiceNumber})`);
-    } catch (error: any) {
-      toast.error(`Error: ${error.message || 'Failed to save invoice or generate PDF'}`, { id: 'invoiceAction' });
-      setMessage(`Error: ${error.message || 'Failed to save invoice or generate PDF'}`);
-      console.error('Error:', error);
+    } catch (err) {
+      const messageText = err instanceof Error ? err.message : 'Failed to save invoice or generate PDF';
+      toast.error(`Error: ${messageText}`, { id: 'invoiceAction' });
+      setMessage(`Error: ${messageText}`);
     } finally {
       setIsProcessing(false);
     }
