@@ -34,23 +34,111 @@ const client = new MongoClient(MONGODB_URI, {
   },
 });
 
-function getQrDataUri(qrAny: any): string | null {
+/* ---------- Types ---------- */
+
+type QrBinary =
+  | string
+  | Buffer
+  | number[]
+  | { buffer: ArrayBufferLike | Buffer | Uint8Array };
+
+type QrInput =
+  | QrBinary
+  | {
+      qrCode?: QrBinary;
+      qr?: QrBinary;
+    }
+  | null
+  | undefined;
+
+interface QuotationItem {
+  no?: string | number;
+  description?: string;
+  quantity?: string | number;
+  rate?: string | number;
+  amount?: string | number;
+  totalAmount?: string | number;
+}
+
+interface QuotationDocument {
+  _id?: unknown;
+
+  invoiceNumber?: string;
+  date?: string;
+
+  clientName?: string;
+  clientAddress?: string;
+  mobile?: string;
+  email?: string;
+  gstin?: string;
+
+  items?: QuotationItem[];
+
+  amountInWords?: string;
+  notes?: string;
+
+  qrCode?: QrInput;
+  qr?: QrInput;
+
+  verificationUrl?: string;
+  verifyUrl?: string;
+  qrLink?: string;
+
+  issuer?: string;
+  documentType?: string;
+
+  paymentLink?: string;
+  paymentUrl?: string;
+  paymentPage?: string;
+  phonePeLink?: string;
+  gpayLink?: string;
+  paytmLink?: string;
+
+  upiId?: string;
+  upi?: string;
+  upiName?: string;
+
+  totalAmountAfterTax?: number;
+  totalAmount?: number;
+
+  createdAt?: Date;
+
+  // Allow unknown extra fields from Mongo
+  [key: string]: unknown;
+}
+
+/* ---------- QR Helpers ---------- */
+
+function isQrWithProps(value: QrInput): value is { qrCode?: QrBinary; qr?: QrBinary } {
+  return typeof value === 'object' && value !== null && ('qrCode' in value || 'qr' in value);
+}
+
+function hasBufferField(value: unknown): value is { buffer: ArrayBufferLike | Buffer | Uint8Array } {
+  return typeof value === 'object' && value !== null && 'buffer' in value;
+}
+
+function getQrDataUri(qrAny: QrInput): string | null {
   try {
     if (!qrAny) return null;
-    const qr =
-      typeof qrAny === 'object' && (qrAny.qrCode || qrAny.qr)
-        ? qrAny.qrCode ?? qrAny.qr
-        : qrAny;
+
+    const qr: QrBinary | QrInput = isQrWithProps(qrAny)
+      ? qrAny.qrCode ?? qrAny.qr
+      : qrAny;
 
     if (!qr) return null;
 
+    // String: already data URI
     if (typeof qr === 'string' && qr.startsWith('data:')) return qr;
+
+    // String: URL
     if (
       typeof qr === 'string' &&
       (qr.startsWith('http://') || qr.startsWith('https://'))
-    )
+    ) {
       return qr;
+    }
 
+    // String: local file path
     if (
       typeof qr === 'string' &&
       (qr.startsWith('/') ||
@@ -72,6 +160,7 @@ function getQrDataUri(qrAny: any): string | null {
       }
     }
 
+    // String: base64 payload
     if (
       typeof qr === 'string' &&
       /^[A-Za-z0-9+/=\s]+$/.test(qr) &&
@@ -80,16 +169,21 @@ function getQrDataUri(qrAny: any): string | null {
       return `data:image/png;base64,${qr.replace(/\s+/g, '')}`;
     }
 
-    if (qr && typeof qr === 'object' && (qr as any).buffer) {
-      const b = Buffer.isBuffer((qr as any).buffer)
-        ? (qr as any).buffer
-        : Buffer.from((qr as any).buffer);
-      return `data:image/png;base64,${b.toString('base64')}`;
+    // Object with .buffer
+    if (hasBufferField(qr)) {
+      const buf =
+        qr.buffer instanceof Buffer
+          ? qr.buffer
+          : Buffer.from(qr.buffer as ArrayBufferLike);
+      return `data:image/png;base64,${buf.toString('base64')}`;
     }
 
-    if (Buffer.isBuffer(qr))
+    // Raw Buffer
+    if (Buffer.isBuffer(qr)) {
       return `data:image/png;base64,${qr.toString('base64')}`;
+    }
 
+    // Array<number>
     if (Array.isArray(qr) && qr.length > 0 && typeof qr[0] === 'number') {
       return `data:image/png;base64,${Buffer.from(qr).toString('base64')}`;
     }
@@ -117,56 +211,64 @@ function loadLocalImageAsDataURI(relPath: string): string | null {
   }
 }
 
-function buildVerificationUrl(doc: any): string | null {
-  const rawUrl = doc?.verificationUrl || doc?.verifyUrl || doc?.qrLink;
+/* ---------- URL / Payment Helpers ---------- */
+
+function buildVerificationUrl(doc: QuotationDocument): string | null {
+  const rawUrl =
+    doc.verificationUrl || doc.verifyUrl || doc.qrLink;
   if (typeof rawUrl === 'string' && rawUrl.length > 4) return rawUrl;
 
-  const invoiceNumber = doc?.invoiceNumber;
+  const invoiceNumber = doc.invoiceNumber;
   if (!invoiceNumber) return null;
 
-  const issuer = (doc?.issuer || '').toLowerCase();
+  const issuer = (doc.issuer || '').toLowerCase();
   const pathname =
     issuer === 'mushahid'
       ? '/verifyqrcodefrontendmushahid'
       : '/verifyqrcodefrontendmustak';
 
-  const url = new URL(
-    pathname,
+  const base =
     DEFAULT_PUBLIC_BASE_URL.startsWith('http')
       ? DEFAULT_PUBLIC_BASE_URL
-      : `https://${DEFAULT_PUBLIC_BASE_URL}`,
-  );
+      : `https://${DEFAULT_PUBLIC_BASE_URL}`;
+
+  const url = new URL(pathname, base);
   url.searchParams.set('invoiceNumber', invoiceNumber);
-  if (doc?.documentType) url.searchParams.set('type', doc.documentType);
+  if (doc.documentType) url.searchParams.set('type', doc.documentType);
   url.searchParams.set('issuer', issuer || 'mustak');
   return url.toString();
 }
 
 function buildPaymentLinks(
-  doc: any,
+  doc: QuotationDocument,
   amountOverride?: number,
 ): { primary: string; deepLink?: string } | null {
   const direct =
-    doc?.paymentLink ||
-    doc?.paymentUrl ||
-    doc?.paymentPage ||
-    doc?.phonePeLink ||
-    doc?.gpayLink ||
-    doc?.paytmLink;
-  if (typeof direct === 'string' && direct.length > 4)
-    return { primary: direct };
+    doc.paymentLink ||
+    doc.paymentUrl ||
+    doc.paymentPage ||
+    doc.phonePeLink ||
+    doc.gpayLink ||
+    doc.paytmLink;
 
-  const upiIdRaw = doc?.upiId || doc?.upi || '9979131416@ybl';
+  if (typeof direct === 'string' && direct.length > 4) {
+    return { primary: direct };
+  }
+
+  const upiIdRaw = doc.upiId || doc.upi || '9979131416@ybl';
   const upiId = upiIdRaw.replace(/\s+/g, '');
-  const payeeName = doc?.upiName || doc?.clientName || 'MUSTAK KHAN';
+  const payeeName = doc.upiName || doc.clientName || 'MUSTAK KHAN';
 
   const fallbackItemsTotal =
-    Array.isArray(doc?.items) && doc.items.length
+    Array.isArray(doc.items) && doc.items.length
       ? doc.items.reduce(
-          (sum: number, it: any) => {
-            const qty = parseFloat(it.quantity ?? 0) || 0;
-            const rate = parseFloat(it.rate ?? 0) || 0;
-            const amt = parseFloat(it.totalAmount ?? it.amount ?? qty * rate) || 0;
+          (sum: number, it: QuotationItem) => {
+            const qty = parseFloat(String(it.quantity ?? 0)) || 0;
+            const rate = parseFloat(String(it.rate ?? 0)) || 0;
+            const amt =
+              parseFloat(
+                String(it.totalAmount ?? it.amount ?? qty * rate),
+              ) || 0;
             return sum + amt;
           },
           0,
@@ -174,7 +276,10 @@ function buildPaymentLinks(
       : undefined;
 
   const amount =
-    amountOverride ?? doc?.totalAmountAfterTax ?? doc?.totalAmount ?? fallbackItemsTotal;
+    amountOverride ??
+    doc.totalAmountAfterTax ??
+    doc.totalAmount ??
+    fallbackItemsTotal;
 
   const upiParams = new URLSearchParams({
     pa: upiId,
@@ -182,6 +287,7 @@ function buildPaymentLinks(
     cu: 'INR',
     mode: '02',
   });
+
   if (amount) upiParams.set('am', String(amount));
 
   const httpsLink = `https://upi.me/pay?${upiParams.toString()}`;
@@ -190,29 +296,40 @@ function buildPaymentLinks(
   return { primary: httpsLink, deepLink };
 }
 
-function buildQuotationHtml(quotation: any) {
+/* ---------- HTML Builder ---------- */
+
+function computeItemAmount(item: QuotationItem): number {
+  const qty = parseFloat(String(item.quantity ?? 0)) || 0;
+  const rate = parseFloat(String(item.rate ?? 0)) || 0;
+  return (
+    parseFloat(String(item.amount ?? item.totalAmount ?? qty * rate)) || 0
+  );
+}
+
+function buildQuotationHtml(quotation: QuotationDocument): string {
   const qrDataUri = getQrDataUri(quotation.qrCode ?? quotation.qr);
   const phonePeQr = loadLocalImageAsDataURI('phonepe-qr.jpg');
   const verificationUrl = buildVerificationUrl(quotation);
 
-  const items = quotation.items || [];
+  const items: QuotationItem[] = quotation.items ?? [];
   const itemsCount = items.length;
   const densityClass =
-    itemsCount > 34 ? 'density-ultra' : itemsCount > 24 ? 'density-compact' : 'density-regular';
+    itemsCount > 34
+      ? 'density-ultra'
+      : itemsCount > 24
+      ? 'density-compact'
+      : 'density-regular';
 
-  const computeAmount = (item: any) => {
-    const qty = parseFloat(item.quantity ?? 0) || 0;
-    const rate = parseFloat(item.rate ?? 0) || 0;
-    return parseFloat(item.amount ?? item.totalAmount ?? qty * rate) || 0;
-  };
-
-  const grandTotal: number = items.reduce((sum: number, item: any) => sum + computeAmount(item), 0);
+  const grandTotal: number = items.reduce(
+    (sum: number, item: QuotationItem) => sum + computeItemAmount(item),
+    0,
+  );
 
   const paymentLinks = buildPaymentLinks(quotation, grandTotal);
 
   const itemsRows = items
     .map(
-      (item: any) => `
+      (item: QuotationItem) => `
   <tr>
     <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
       item.no ?? ''
@@ -224,10 +341,10 @@ function buildQuotationHtml(quotation: any) {
       item.quantity ?? ''
     }</td>
     <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(
-      parseFloat(item.rate || 0) || 0
+      parseFloat(String(item.rate ?? 0)) || 0
     ).toFixed(2)}</td>
-    <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(
-      computeAmount(item) || 0
+    <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${computeItemAmount(
+      item,
     ).toFixed(2)}</td>
   </tr>`,
     )
@@ -375,18 +492,18 @@ function buildQuotationHtml(quotation: any) {
       font-size:11px;
     }
     table.items thead th {
-      text-align:center; /* Default center for S.No and QTY */
+      text-align:center;
       padding:6px 4px;
       background:#eef2f7; 
       font-weight:700;
       border-bottom: 2px solid #e2e8f0;
       color:#0b1220;
     }
-    /* Left align Description, Rate and Amount like invoice */
-    table.items th:nth-child(2), /* Description */
-    table.items th:nth-child(4), /* Rate */
-    table.items th:nth-child(5)  /* Amount */
-    { text-align:left; }
+    table.items th:nth-child(2),
+    table.items th:nth-child(4),
+    table.items th:nth-child(5) {
+      text-align:left;
+    }
 
     table.items td {
       padding:5px 4px;
@@ -557,7 +674,7 @@ function buildQuotationHtml(quotation: any) {
       </div>
       <div class="totals" role="note" aria-label="Amount Summary">
         <div class="row total">
-          
+          <!-- Totals intentionally left blank for quotation -->
         </div>
       </div>
     </div>
@@ -584,7 +701,9 @@ function buildQuotationHtml(quotation: any) {
 </html>`;
 }
 
-async function waitForImagesLoad(page: Page, timeoutMs = 6000) {
+/* ---------- Puppeteer Helper ---------- */
+
+async function waitForImagesLoad(page: Page, timeoutMs = 6000): Promise<void> {
   await page.evaluate(
     (timeout: number) =>
       new Promise<void>((resolve) => {
@@ -596,14 +715,15 @@ async function waitForImagesLoad(page: Page, timeoutMs = 6000) {
           if (settled >= imgs.length) resolve();
         };
         imgs.forEach((img) => {
-          if ((img as HTMLImageElement).complete) return done();
+          const htmlImg = img as HTMLImageElement;
+          if (htmlImg.complete) return done();
           const onDone = () => {
-            (img as HTMLImageElement).removeEventListener('load', onDone);
-            (img as HTMLImageElement).removeEventListener('error', onDone);
+            htmlImg.removeEventListener('load', onDone);
+            htmlImg.removeEventListener('error', onDone);
             done();
           };
-          (img as HTMLImageElement).addEventListener('load', onDone);
-          (img as HTMLImageElement).addEventListener('error', onDone);
+          htmlImg.addEventListener('load', onDone);
+          htmlImg.addEventListener('error', onDone);
         });
         setTimeout(() => resolve(), timeout);
       }),
@@ -611,11 +731,13 @@ async function waitForImagesLoad(page: Page, timeoutMs = 6000) {
   );
 }
 
-export async function GET(_req: NextRequest) {
+/* ---------- Route Handler ---------- */
+
+export async function GET(): Promise<NextResponse> {
   try {
     await client.connect();
     const db = client.db(DB_NAME);
-    const collection = db.collection(COLLECTION_NAME);
+    const collection = db.collection<QuotationDocument>(COLLECTION_NAME);
 
     const latest = await collection
       .find({})
@@ -658,7 +780,7 @@ export async function GET(_req: NextRequest) {
     const extraDensityClasses = ['density-tight', 'density-micro'];
     if (contentHeightPx > availableHeight) {
       for (const density of extraDensityClasses) {
-        await page.evaluate((densityClass) => {
+        await page.evaluate((densityClass: string) => {
           if (!document.body.classList.contains(densityClass)) {
             document.body.classList.add(densityClass);
           }
@@ -693,10 +815,16 @@ export async function GET(_req: NextRequest) {
         'Cache-Control': 'no-store',
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating quotation PDF:', error);
+
+    let message = 'Unknown error';
+    if (error instanceof Error && error.message) {
+      message = error.message;
+    }
+
     return NextResponse.json(
-      { message: `Failed to generate quotation PDF: ${error?.message ?? 'Unknown error'}` },
+      { message: `Failed to generate quotation PDF: ${message}` },
       { status: 500 },
     );
   } finally {

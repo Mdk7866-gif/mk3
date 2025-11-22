@@ -1,7 +1,7 @@
 // src/app/api/mustakgenerateinvoicepdff/route.ts
 import fs from 'fs';
 import path from 'path';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 import puppeteer, { Page } from 'puppeteer';
 
@@ -34,23 +34,113 @@ const client = new MongoClient(MONGODB_URI, {
   },
 });
 
-function getQrDataUri(qrAny: any): string | null {
+/* ---------- Types ---------- */
+
+type QrBinary =
+  | string
+  | Buffer
+  | number[]
+  | { buffer: ArrayBufferLike | Buffer | Uint8Array };
+
+type QrInput =
+  | QrBinary
+  | {
+      qrCode?: QrBinary;
+      qr?: QrBinary;
+    }
+  | null
+  | undefined;
+
+interface InvoiceItem {
+  no?: string | number;
+  description?: string;
+  quantity?: string | number;
+  rate?: string | number;
+  amount?: string | number;
+  totalAmount?: string | number;
+}
+
+interface InvoiceDocument {
+  _id?: unknown;
+
+  invoiceNumber?: string;
+  date?: string;
+
+  clientName?: string;
+  clientAddress?: string;
+  mobile?: string;
+  email?: string;
+  gstin?: string;
+
+  items?: InvoiceItem[];
+
+  amountInWords?: string;
+  notes?: string;
+
+  qrCode?: QrInput;
+  qr?: QrInput;
+
+  verificationUrl?: string;
+  verifyUrl?: string;
+  qrLink?: string;
+
+  issuer?: string;
+  documentType?: string;
+
+  paymentLink?: string;
+  paymentUrl?: string;
+  paymentPage?: string;
+  phonePeLink?: string;
+  gpayLink?: string;
+  paytmLink?: string;
+
+  upiId?: string;
+  upi?: string;
+  upiName?: string;
+
+  totalAmountAfterTax?: number;
+  totalAmount?: number;
+
+  createdAt?: Date;
+
+  // allow any extra fields from Mongo
+  [key: string]: unknown;
+}
+
+/* ---------- QR Helpers ---------- */
+
+function isQrWithProps(value: QrInput): value is { qrCode?: QrBinary; qr?: QrBinary } {
+  return typeof value === 'object' && value !== null && ('qrCode' in value || 'qr' in value);
+}
+
+function hasBufferField(
+  value: unknown,
+): value is { buffer: ArrayBufferLike | Buffer | Uint8Array } {
+  return typeof value === 'object' && value !== null && 'buffer' in value;
+}
+
+function getQrDataUri(qrAny: QrInput): string | null {
   try {
     if (!qrAny) return null;
-    const qr =
-      typeof qrAny === 'object' && (qrAny.qrCode || qrAny.qr)
-        ? qrAny.qrCode ?? qrAny.qr
-        : qrAny;
+
+    const qr: QrBinary | QrInput = isQrWithProps(qrAny)
+      ? qrAny.qrCode ?? qrAny.qr
+      : qrAny;
 
     if (!qr) return null;
 
+    // String: already data URI
     if (typeof qr === 'string' && qr.startsWith('data:')) return qr;
+
+    // String: URL
     if (
       typeof qr === 'string' &&
       (qr.startsWith('http://') || qr.startsWith('https://'))
-    )
+    ) {
       return qr;
+    }
 
+    // String: local file path
     if (
       typeof qr === 'string' &&
       (qr.startsWith('/') ||
@@ -72,6 +162,7 @@ function getQrDataUri(qrAny: any): string | null {
       }
     }
 
+    // String: base64 payload
     if (
       typeof qr === 'string' &&
       /^[A-Za-z0-9+/=\s]+$/.test(qr) &&
@@ -80,16 +171,21 @@ function getQrDataUri(qrAny: any): string | null {
       return `data:image/png;base64,${qr.replace(/\s+/g, '')}`;
     }
 
-    if (qr && typeof qr === 'object' && (qr as any).buffer) {
-      const b = Buffer.isBuffer((qr as any).buffer)
-        ? (qr as any).buffer
-        : Buffer.from((qr as any).buffer);
-      return `data:image/png;base64,${b.toString('base64')}`;
+    // Object with .buffer
+    if (hasBufferField(qr)) {
+      const buf =
+        qr.buffer instanceof Buffer
+          ? qr.buffer
+          : Buffer.from(qr.buffer as ArrayBufferLike);
+      return `data:image/png;base64,${buf.toString('base64')}`;
     }
 
-    if (Buffer.isBuffer(qr))
+    // Raw Buffer
+    if (Buffer.isBuffer(qr)) {
       return `data:image/png;base64,${qr.toString('base64')}`;
+    }
 
+    // Array<number>
     if (Array.isArray(qr) && qr.length > 0 && typeof qr[0] === 'number') {
       return `data:image/png;base64,${Buffer.from(qr).toString('base64')}`;
     }
@@ -100,6 +196,8 @@ function getQrDataUri(qrAny: any): string | null {
     return null;
   }
 }
+
+/* ---------- Image Helper ---------- */
 
 function loadLocalImageAsDataURI(relPath: string): string | null {
   try {
@@ -117,15 +215,17 @@ function loadLocalImageAsDataURI(relPath: string): string | null {
   }
 }
 
-function buildVerificationUrl(invoice: any): string | null {
+/* ---------- URL / Payment Helpers ---------- */
+
+function buildVerificationUrl(invoice: InvoiceDocument): string | null {
   const rawUrl =
-    invoice?.verificationUrl || invoice?.verifyUrl || invoice?.qrLink;
+    invoice.verificationUrl || invoice.verifyUrl || invoice.qrLink;
   if (typeof rawUrl === 'string' && rawUrl.length > 4) return rawUrl;
 
-  const invoiceNumber = invoice?.invoiceNumber;
+  const invoiceNumber = invoice.invoiceNumber;
   if (!invoiceNumber) return null;
 
-  const issuer = (invoice?.issuer || '').toLowerCase();
+  const issuer = (invoice.issuer || '').toLowerCase();
   const pathname =
     issuer === 'mushahid'
       ? '/verifyqrcodefrontendmushahid'
@@ -133,50 +233,54 @@ function buildVerificationUrl(invoice: any): string | null {
       ? '/verifyqrcodefrontendmustak'
       : '/verifyqrcodefrontendmustak';
 
-  const url = new URL(
-    pathname,
+  const base =
     DEFAULT_PUBLIC_BASE_URL.startsWith('http')
       ? DEFAULT_PUBLIC_BASE_URL
-      : `https://${DEFAULT_PUBLIC_BASE_URL}`,
-  );
+      : `https://${DEFAULT_PUBLIC_BASE_URL}`;
+
+  const url = new URL(pathname, base);
   url.searchParams.set('invoiceNumber', invoiceNumber);
-  if (invoice?.documentType) url.searchParams.set('type', invoice.documentType);
+  if (invoice.documentType) url.searchParams.set('type', invoice.documentType);
   url.searchParams.set('issuer', issuer || 'mustak');
   return url.toString();
 }
 
 function buildPaymentLinks(
-  invoice: any,
+  invoice: InvoiceDocument,
   amountOverride?: number,
 ): { primary: string; deepLink?: string } | null {
   const direct =
-    invoice?.paymentLink ||
-    invoice?.paymentUrl ||
-    invoice?.paymentPage ||
-    invoice?.phonePeLink ||
-    invoice?.gpayLink ||
-    invoice?.paytmLink;
-  if (typeof direct === 'string' && direct.length > 4)
-    return { primary: direct };
+    invoice.paymentLink ||
+    invoice.paymentUrl ||
+    invoice.paymentPage ||
+    invoice.phonePeLink ||
+    invoice.gpayLink ||
+    invoice.paytmLink;
 
-  const upiIdRaw = invoice?.upiId || invoice?.upi || '9979131416@ybl';
+  if (typeof direct === 'string' && direct.length > 4) {
+    return { primary: direct };
+  }
+
+  const upiIdRaw = invoice.upiId || invoice.upi || '9979131416@ybl';
   const upiId = upiIdRaw.replace(/\s+/g, '');
-  const payeeName = invoice?.upiName || invoice?.clientName || 'MUSTAK KHAN';
+  const payeeName = invoice.upiName || invoice.clientName || 'MUSTAK KHAN';
 
   const fallbackItemsTotal =
-    Array.isArray(invoice?.items) && invoice.items.length
+    Array.isArray(invoice.items) && invoice.items.length
       ? invoice.items.reduce(
-          (sum: number, it: any) =>
-            sum +
-            (parseFloat(it.totalAmount ?? it.amount ?? 0) || 0),
+          (sum: number, it: InvoiceItem) => {
+            const amt =
+              parseFloat(String(it.totalAmount ?? it.amount ?? 0)) || 0;
+            return sum + amt;
+          },
           0,
         )
       : undefined;
 
   const amount =
     amountOverride ??
-    invoice?.totalAmountAfterTax ??
-    invoice?.totalAmount ??
+    invoice.totalAmountAfterTax ??
+    invoice.totalAmount ??
     fallbackItemsTotal;
 
   const upiParams = new URLSearchParams({
@@ -185,6 +289,7 @@ function buildPaymentLinks(
     cu: 'INR',
     mode: '02',
   });
+
   if (amount) upiParams.set('am', String(amount));
 
   const httpsLink = `https://upi.me/pay?${upiParams.toString()}`;
@@ -193,28 +298,38 @@ function buildPaymentLinks(
   return { primary: httpsLink, deepLink };
 }
 
-function buildInvoiceHtml(invoice: any) {
+/* ---------- HTML Builder ---------- */
+
+function computeItemAmount(item: InvoiceItem): number {
+  return (
+    parseFloat(String(item.totalAmount ?? item.amount ?? 0)) || 0
+  );
+}
+
+function buildInvoiceHtml(invoice: InvoiceDocument): string {
   const qrDataUri = getQrDataUri(invoice.qrCode ?? invoice.qr);
   const phonePeQr = loadLocalImageAsDataURI('phonepe-qr.jpg');
   const verificationUrl = buildVerificationUrl(invoice);
 
-  const items = invoice.items || [];
+  const items: InvoiceItem[] = invoice.items ?? [];
   const itemsCount = items.length;
   const densityClass =
-    itemsCount > 34 ? 'density-ultra' : itemsCount > 24 ? 'density-compact' : 'density-regular';
+    itemsCount > 34
+      ? 'density-ultra'
+      : itemsCount > 24
+      ? 'density-compact'
+      : 'density-regular';
 
   const grandTotal: number = items.reduce(
-    (sum: number, item: any) =>
-      sum + (parseFloat(item.totalAmount ?? item.amount ?? 0) || 0),
+    (sum: number, item: InvoiceItem) => sum + computeItemAmount(item),
     0,
   );
 
   const paymentLinks = buildPaymentLinks(invoice, grandTotal);
 
-  // *** MODIFICATION: Changed text-align to left for Rate and Amount columns ***
   const itemsRows = items
     .map(
-      (item: any) => `
+      (item: InvoiceItem) => `
   <tr>
     <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
       item.no ?? ''
@@ -226,10 +341,10 @@ function buildInvoiceHtml(invoice: any) {
       item.quantity ?? ''
     }</td>
     <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(
-      parseFloat(item.rate || 0) || 0
+      parseFloat(String(item.rate ?? 0)) || 0
     ).toFixed(2)}</td>
-    <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(
-      parseFloat(item.amount || item.totalAmount || 0) || 0
+    <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${computeItemAmount(
+      item,
     ).toFixed(2)}</td>
   </tr>`,
     )
@@ -386,11 +501,12 @@ function buildInvoiceHtml(invoice: any) {
       border-bottom: 2px solid #e2e8f0;
       color:#0b1220;
     }
-    /* *** MODIFICATION: Specifically targeting Rate (4) and Amount (5) to match Left alignment *** */
+    /* Left align Description, Rate and Amount */
     table.items th:nth-child(2), /* Description */
     table.items th:nth-child(4), /* Rate */
-    table.items th:nth-child(5)  /* Amount */
-    { text-align:left; }
+    table.items th:nth-child(5)  /* Amount */ {
+      text-align:left;
+    }
 
     table.items td {
       padding:5px 4px;
@@ -523,21 +639,9 @@ function buildInvoiceHtml(invoice: any) {
         <div style="font-size:10.5px;color:#0b1220;line-height:1.25;">
           <strong>Name:</strong> ${invoice.clientName ?? 'N/A'}<br/>
           <strong>Address:</strong> ${invoice.clientAddress ?? 'N/A'}<br/>
-          ${
-            invoice.mobile
-              ? `<strong>Mobile:</strong> ${invoice.mobile}<br/>`
-              : ''
-          }
-          ${
-            invoice.email
-              ? `<strong>Email:</strong> ${invoice.email}<br/>`
-              : ''
-          }
-          ${
-            invoice.gstin
-              ? `<strong>GSTIN:</strong> ${invoice.gstin}<br/>`
-              : ''
-          }
+          ${invoice.mobile ? `<strong>Mobile:</strong> ${invoice.mobile}<br/>` : ''}
+          ${invoice.email ? `<strong>Email:</strong> ${invoice.email}<br/>` : ''}
+          ${invoice.gstin ? `<strong>GSTIN:</strong> ${invoice.gstin}<br/>` : ''}
         </div>
       </div>
     </div>
@@ -600,7 +704,9 @@ function buildInvoiceHtml(invoice: any) {
 </html>`;
 }
 
-async function waitForImagesLoad(page: Page, timeoutMs = 6000) {
+/* ---------- Puppeteer Helper ---------- */
+
+async function waitForImagesLoad(page: Page, timeoutMs = 6000): Promise<void> {
   await page.evaluate(
     (timeout: number) =>
       new Promise<void>((resolve) => {
@@ -612,14 +718,15 @@ async function waitForImagesLoad(page: Page, timeoutMs = 6000) {
           if (settled >= imgs.length) resolve();
         };
         imgs.forEach((img) => {
-          if ((img as HTMLImageElement).complete) return done();
+          const htmlImg = img as HTMLImageElement;
+          if (htmlImg.complete) return done();
           const onDone = () => {
-            (img as HTMLImageElement).removeEventListener('load', onDone);
-            (img as HTMLImageElement).removeEventListener('error', onDone);
+            htmlImg.removeEventListener('load', onDone);
+            htmlImg.removeEventListener('error', onDone);
             done();
           };
-          (img as HTMLImageElement).addEventListener('load', onDone);
-          (img as HTMLImageElement).addEventListener('error', onDone);
+          htmlImg.addEventListener('load', onDone);
+          htmlImg.addEventListener('error', onDone);
         });
         setTimeout(() => resolve(), timeout);
       }),
@@ -627,11 +734,13 @@ async function waitForImagesLoad(page: Page, timeoutMs = 6000) {
   );
 }
 
-export async function GET(_req: NextRequest) {
+/* ---------- Route Handler ---------- */
+
+export async function GET(): Promise<NextResponse> {
   try {
     await client.connect();
     const db = client.db(DB_NAME);
-    const collection = db.collection(COLLECTION_NAME);
+    const collection = db.collection<InvoiceDocument>(COLLECTION_NAME);
 
     const latest = await collection
       .find({})
@@ -674,7 +783,7 @@ export async function GET(_req: NextRequest) {
     const extraDensityClasses = ['density-tight', 'density-micro'];
     if (contentHeightPx > availableHeight) {
       for (const density of extraDensityClasses) {
-        await page.evaluate((densityClass) => {
+        await page.evaluate((densityClass: string) => {
           if (!document.body.classList.contains(densityClass)) {
             document.body.classList.add(densityClass);
           }
@@ -709,10 +818,16 @@ export async function GET(_req: NextRequest) {
         'Cache-Control': 'no-store',
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating PDF:', error);
+
+    let message = 'Unknown error';
+    if (error instanceof Error && error.message) {
+      message = error.message;
+    }
+
     return NextResponse.json(
-      { message: `Failed to generate PDF: ${error?.message ?? 'Unknown error'}` },
+      { message: `Failed to generate PDF: ${message}` },
       { status: 500 },
     );
   } finally {
