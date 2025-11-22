@@ -36,19 +36,11 @@ const client = new MongoClient(MONGODB_URI, {
 
 /**
  * Convert various QR shapes into a src usable by <img src="...">
- * Supports:
- * - data:image/... (returns as-is)
- * - base64 string (no prefix) -> assume PNG
- * - http(s) url (returns as-is)
- * - local file path -> read and convert to base64
- * - Buffer / Mongo Binary -> convert to data URI
- * - Array<number> -> convert to data URI
  */
 function getQrDataUri(qrAny: any): string | null {
   try {
     if (!qrAny) return null;
 
-    // If passed an object with qrCode or qr fields, pick that
     const qr =
       typeof qrAny === 'object' && (qrAny.qrCode || qrAny.qr)
         ? (qrAny.qrCode ?? qrAny.qr)
@@ -56,15 +48,12 @@ function getQrDataUri(qrAny: any): string | null {
 
     if (!qr) return null;
 
-    // Already a data URI
     if (typeof qr === 'string' && qr.startsWith('data:')) return qr;
 
-    // HTTP(S) URL
     if (typeof qr === 'string' && (qr.startsWith('http://') || qr.startsWith('https://'))) {
       return qr;
     }
 
-    // Local file path (absolute or relative) - useful for local testing
     if (
       typeof qr === 'string' &&
       (qr.startsWith('/') || qr.includes('./') || qr.includes('../') || qr.includes('/mnt/'))
@@ -73,7 +62,6 @@ function getQrDataUri(qrAny: any): string | null {
         const filePath = path.isAbsolute(qr) ? qr : path.resolve(process.cwd(), qr);
         if (fs.existsSync(filePath)) {
           const fileBuffer = fs.readFileSync(filePath);
-          // Guess mime type from extension (basic)
           const ext = path.extname(filePath).toLowerCase();
           const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
           return `data:${mime};base64,${fileBuffer.toString('base64')}`;
@@ -83,23 +71,19 @@ function getQrDataUri(qrAny: any): string | null {
       }
     }
 
-    // Plain base64 string (no prefix) -> assume PNG
     if (typeof qr === 'string' && /^[A-Za-z0-9+/=\s]+$/.test(qr) && qr.length > 100) {
       return `data:image/png;base64,${qr.replace(/\s+/g, '')}`;
     }
 
-    // MongoDB Binary-like (has .buffer)
     if (qr && typeof qr === 'object' && qr.buffer) {
       const b = Buffer.isBuffer(qr.buffer) ? qr.buffer : Buffer.from(qr.buffer);
       return `data:image/png;base64,${b.toString('base64')}`;
     }
 
-    // Buffer
     if (Buffer.isBuffer(qr)) {
       return `data:image/png;base64,${qr.toString('base64')}`;
     }
 
-    // Array<number> of bytes
     if (Array.isArray(qr) && qr.length > 0 && typeof qr[0] === 'number') {
       return `data:image/png;base64,${Buffer.from(qr).toString('base64')}`;
     }
@@ -111,10 +95,6 @@ function getQrDataUri(qrAny: any): string | null {
   }
 }
 
-/**
- * Load a file from ./public and return a data URI (useful for PhonePe QR)
- * Example: loadLocalImageAsDataURI('phonepe-qr.jpg')
- */
 function loadLocalImageAsDataURI(relPath: string): string | null {
   try {
     const safeRel = relPath.replace(/^\/+/, '');
@@ -187,10 +167,6 @@ function buildPaymentLinks(invoice: any): { primary: string; deepLink?: string }
   return { primary: httpsLink, deepLink };
 }
 
-/**
- * Build invoice HTML — formal, high-contrast, professional.
- * Embeds invoice.qrCode (or invoice.qr) and a PhonePe QR from public/phonepe-qr.jpg
- */
 function buildInvoiceHtml(invoice: any) {
   const qrDataUri = getQrDataUri(invoice.qrCode ?? invoice.qr);
   const phonePeQr = loadLocalImageAsDataURI('phonepe-qr.jpg');
@@ -233,23 +209,36 @@ function buildInvoiceHtml(invoice: any) {
     : qrImage;
 
   const paymentHref = paymentLinks?.primary || '#';
+  
+  // UPDATED: Smaller PhonePe QR and shorter, crisp text
   const phonePeHtml = phonePeQr
     ? `<a href="${paymentHref}" ${paymentLinks ? 'target="_blank" rel="noopener noreferrer"' : ''} ${
         paymentLinks?.deepLink ? `data-upi-link="${paymentLinks.deepLink}"` : ''
       } style="display:block;text-decoration:none;color:inherit;">
-        <img alt="UPI Payment QR" src="${phonePeQr}" style="width:120px;height:auto;display:block;margin:0 auto;border-radius:6px;" decoding="async" />
-        <div style="font-size:10px;color:#0f172a;margin-top:6px;">Tap or scan to pay via UPI</div>
-        <div style="font-size:9.5px;color:#475569;">Works with PhonePe, Google Pay &amp; Paytm</div>
+        <img alt="UPI Payment QR" src="${phonePeQr}" style="width:85px;height:auto;display:block;margin:0 auto;border-radius:6px;" decoding="async" />
+        <div style="font-size:9px;color:#0f172a;margin-top:4px;font-weight:600;">Scan or tap to pay</div>
       </a>`
-    : `<div style="font-size:11px;color:#6b7280;text-align:center">PhonePe QR Not Found</div>`;
+    : `<div style="font-size:10px;color:#6b7280;text-align:center">PhonePe QR Not Found</div>`;
 
-  // Terms & Conditions (from your provided content), uppercase and formal
-  const termsHtml = `
-    <div style="margin-top:8px;font-size:11px;color:#374151;line-height:1.5;text-transform:uppercase;">
+  const termsContent = `
+    <div style="line-height:1.3;">
       1.) SUBJECT TO AHMEDABAD JURISDICTION.<br/>
       2.) ANY TAXES APPLICABLE WILL BE BORNE BY THE CUSTOMER.<br/>
       3.) PLEASE PAY BY CASH / CROSSED CHEQUE / DEMAND DRAFT / UPI / NETBANKING ONLY.<br/>
       4.) PLEASE MAKE CHEQUE PAYMENTS PAYABLE TO THE APPROPRIATE BENEFICIARY AS ADVISED.
+    </div>`;
+
+  const amountWordsHtml = invoice.amountInWords 
+    ? `<div style="margin-top:6px;font-weight:800;font-size:11px;color:#0b1220;">Amount in Words: ${invoice.amountInWords}</div>` 
+    : '';
+    
+  const notesHtml = invoice.notes 
+    ? `<div style="margin-top:4px;"><strong>Notes:</strong> ${invoice.notes}</div>` 
+    : '';
+
+  const certHtml = `
+    <div style="margin-top:4px;">
+      Certified that the particulars given above are true &amp; correct. For <strong>MUSTAK KHAN</strong>.
     </div>`;
 
   return `<!doctype html>
@@ -274,8 +263,8 @@ function buildInvoiceHtml(invoice: any) {
 
     .container {
       max-width: 820px;
-      margin: 12px auto;
-      padding: 14px;
+      margin: 10px auto; /* Reduced top/bottom margin */
+      padding: 12px; /* Slightly reduced padding */
       border: 1px solid #e6eef6;
       border-radius: 6px;
       background: #fff;
@@ -287,23 +276,23 @@ function buildInvoiceHtml(invoice: any) {
       align-items:flex-start;
       gap:12px;
       border-bottom:1px solid #eef2f7;
-      padding-bottom:12px;
-      margin-bottom:12px;
+      padding-bottom:10px;
+      margin-bottom:10px;
     }
 
     .company h1 { font-size:20px; margin:0 0 4px 0; letter-spacing:0.6px; color:#0b1220; }
     .muted { color:#475569; font-size:11px; margin-top:3px; }
 
     .qr-holder {
-      width:96px;
-      height:96px;
+      width:90px;
+      height:90px;
       border-radius:6px;
       border:1px solid #e6eef6;
       display:flex;
       align-items:center;
       justify-content:center;
       background:#fff;
-      padding:6px;
+      padding:4px;
     }
 
     .title {
@@ -311,99 +300,115 @@ function buildInvoiceHtml(invoice: any) {
       font-weight:700;
       font-size:16px;
       letter-spacing:1px;
-      margin: 8px 0 12px;
-      padding:10px 0;
+      margin: 6px 0 10px;
+      padding:8px 0;
       background:#f1f5f9;
       color:#0b3d91;
       border-radius:6px;
       border:1px solid #e6eef8;
     }
 
-    .meta { display:flex; justify-content:space-between; gap:12px; margin-bottom:12px; }
-    .section { display:flex; gap:12px; margin-bottom:12px; }
-    .box { flex:1; padding:10px; border-radius:6px; background:#fbfcfe; border:1px solid #eef2f9; }
+    .meta { display:flex; justify-content:space-between; gap:12px; margin-bottom:10px; }
+    .section { display:flex; gap:12px; margin-bottom:10px; }
+    .box { flex:1; padding:8px; border-radius:6px; background:#fbfcfe; border:1px solid #eef2f9; }
     .box h4 { margin:0 0 6px 0; font-size:12px; color:#0b1220; }
 
-    table.items { width:100%; border-collapse: collapse; margin-bottom:12px; font-size:11.5px; }
+    table.items { width:100%; border-collapse: collapse; margin-bottom:10px; font-size:11.5px; }
     table.items thead th {
       text-align:center;
-      padding:10px 8px;
+      padding:8px 6px;
       background:#f8fafc;
       font-weight:700;
       border-bottom: 1px solid #e6eef6;
       color:#0b1220;
     }
     table.items th:nth-child(2) { text-align:left; }
-    table.items td { padding:10px 8px; vertical-align:middle; color:#0f172a; border-bottom:1px solid #f1f5f9; }
+    table.items td { padding:8px 6px; vertical-align:middle; color:#0f172a; border-bottom:1px solid #f1f5f9; }
     table.items td.right { text-align:right; }
 
     /* Avoid splitting rows across pages */
     table, thead, tbody, tr, td, th { page-break-inside: avoid; -webkit-column-break-inside: avoid; -webkit-page-break-inside: avoid; }
     tr { break-inside: avoid; }
 
+    .bottom-split { display: flex; gap: 12px; align-items: flex-start; }
+    .bottom-left { flex: 1; }
+    
     .totals { width:340px; margin-left:auto; border:1px solid #eef2f7; border-radius:6px; overflow:hidden; }
-    .totals .row { display:flex; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #f1f5f9; font-size:11.5px; background:#fff; color:#0b1220; }
+    .totals .row { display:flex; justify-content:space-between; padding:8px 12px; border-bottom:1px solid #f1f5f9; font-size:11.5px; background:#fff; color:#0b1220; }
     .totals .row.total { font-weight:800; background:#f1f5f9; }
 
-    .footer { margin-top:14px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
-    .notes { font-size:11px; color:#475569; flex:1; }
+    /* Signature Block Adjusted Upwards */
+    .sign-block { 
+        display:flex; 
+        justify-content:space-between; 
+        gap:20px; 
+        align-items:flex-end; 
+        margin-top: 0px; /* REMOVED MARGIN TO PULL UP */
+        padding-top: 4px; 
+    }
 
-    .sign-block { display:flex; justify-content:space-between; gap:20px; align-items:flex-end; margin-top:18px; }
+    .signature-line { 
+        border-top:1.25px solid #0b1220; 
+        width:160px; 
+        padding-top:4px; 
+        font-weight:700; 
+        font-size:11px; 
+        text-align:center; 
+        margin-bottom: 2px;
+    }
 
-    .signature-line { margin-top:18px; border-top:1.25px solid #0b1220; width:180px; padding-top:6px; font-weight:700; font-size:12px; text-align:center; }
-
-    /* PhonePe QR box */
+    /* PhonePe QR box Compact */
     .phonepe-box {
-      width:150px;
+      width:115px; /* Reduced width */
       border:1px solid #eef2f7;
       border-radius:8px;
-      padding:10px;
+      padding:5px; /* Reduced padding */
       text-align:center;
       background:#fff;
     }
-    .phonepe-box h5 { margin:0 0 8px 0; font-size:12px; color:#0b1220; }
+    .phonepe-box h5 { margin:0 0 4px 0; font-size:11px; color:#0b1220; }
 
+    /* Density Tweaks */
     .density-compact table.items td,
-    .density-compact table.items th { padding:7px 6px; font-size:10.5px; }
-    .density-compact .box { padding:8px; }
+    .density-compact table.items th { padding:6px 5px; font-size:10.5px; }
+    .density-compact .box { padding:6px; }
     .density-compact .qr-holder { width:92px; height:92px; }
-    .density-compact .totals .row { padding:8px 10px; font-size:10.5px; }
-    .density-compact .header { padding-bottom:8px; margin-bottom:8px; }
+    .density-compact .totals .row { padding:6px 8px; font-size:10.5px; }
+    .density-compact .header { padding-bottom:6px; margin-bottom:6px; }
 
     .density-ultra table.items td,
-    .density-ultra table.items th { padding:5px 4px; font-size:9.6px; }
-    .density-ultra .box { padding:6px; }
+    .density-ultra table.items th { padding:4px 3px; font-size:9.6px; }
+    .density-ultra .box { padding:5px; }
     .density-ultra body,
     .density-ultra .container { font-size:10.6px; }
-    .density-ultra .title { margin:4px 0 8px; padding:6px 0; }
-    .density-ultra .meta { margin-bottom:6px; }
-    .density-ultra .totals .row { padding:6px 8px; font-size:9.6px; }
-    .density-ultra .sign-block { margin-top:12px; }
+    .density-ultra .title { margin:4px 0 6px; padding:5px 0; }
+    .density-ultra .meta { margin-bottom:5px; }
+    .density-ultra .totals .row { padding:5px 6px; font-size:9.6px; }
+    .density-ultra .sign-block { margin-top:4px; }
 
     body.density-tight { font-size:10.4px; }
-    body.density-tight .container { padding:10px; }
+    body.density-tight .container { padding:8px; }
     body.density-tight table.items th,
-    body.density-tight table.items td { padding:5px 4px; font-size:9.4px; }
-    body.density-tight .header { padding-bottom:6px; margin-bottom:6px; }
-    body.density-tight .box { padding:6px; }
-    body.density-tight .meta { margin-bottom:6px; }
-    body.density-tight .totals .row { padding:5px 6px; font-size:9.4px; }
-    body.density-tight .phonepe-box { width:130px; padding:8px; }
+    body.density-tight table.items td { padding:4px 3px; font-size:9.4px; }
+    body.density-tight .header { padding-bottom:5px; margin-bottom:5px; }
+    body.density-tight .box { padding:5px; }
+    body.density-tight .meta { margin-bottom:5px; }
+    body.density-tight .totals .row { padding:4px 5px; font-size:9.4px; }
+    body.density-tight .phonepe-box { width:110px; padding:4px; }
 
     body.density-micro { font-size:9.6px; }
     body.density-micro table.items th,
-    body.density-micro table.items td { padding:4px 3px; font-size:8.8px; }
-    body.density-micro .title { font-size:13px; padding:4px 0; margin:2px 0 6px; }
-    body.density-micro .qr-holder { width:80px; height:80px; padding:4px; }
-    body.density-micro .totals .row { padding:4px 5px; font-size:8.8px; }
-    body.density-micro .sign-block { margin-top:8px; gap:12px; }
+    body.density-micro table.items td { padding:3px 2px; font-size:8.8px; }
+    body.density-micro .title { font-size:13px; padding:4px 0; margin:2px 0 4px; }
+    body.density-micro .qr-holder { width:70px; height:70px; padding:2px; }
+    body.density-micro .totals .row { padding:3px 4px; font-size:8.8px; }
+    body.density-micro .sign-block { margin-top:4px; gap:10px; }
 
     body.scale-tight .container {
       transform: scale(0.975);
       transform-origin: top center;
       width: calc(100% / 0.975);
     }
-
     body.scale-micro .container {
       transform: scale(0.95);
       transform-origin: top center;
@@ -422,10 +427,10 @@ function buildInvoiceHtml(invoice: any) {
         <h1>MUSTAK KHAN</h1>
         <div class="muted">(An expert in ceiling design)</div>
         <div class="muted">C.207 Marjan Residency No. Alpola Conael, Road Vatva, Ahmedabad - 382440</div>
-        <div style="margin-top:8px;font-size:12px;">
+        <div style="margin-top:6px;font-size:11.5px;">
           <strong>Mob:</strong> 9979131416 &nbsp;&nbsp;<strong>Email:</strong> mustakbhaimrik510@gmail.com
         </div>
-        <div style="margin-top:6px;font-size:12px;"><strong>GSTIN:</strong> 24BEGPK9997B4Z-W</div>
+        <div style="margin-top:4px;font-size:11.5px;"><strong>GSTIN:</strong> 24BEGPK9997B4Z-W</div>
       </div>
 
       <div class="qr-holder" title="Invoice QR">
@@ -443,7 +448,7 @@ function buildInvoiceHtml(invoice: any) {
     <div class="section">
       <div class="box">
         <h4>Company Details</h4>
-        <div style="font-size:11.5px;color:#0b1220;">
+        <div style="font-size:11px;color:#0b1220;">
           <strong>Name:</strong> MUSTAK KHAN<br/>
           <strong>Address:</strong> C.207 Marjan Residency No. Alpola Conael Road Vatva Ahmedabad - 382440, Gujarat<br/>
           <strong>Mobile:</strong> 9979131416<br/>
@@ -454,7 +459,7 @@ function buildInvoiceHtml(invoice: any) {
 
       <div class="box">
         <h4>Bill To</h4>
-        <div style="font-size:11.5px;color:#0b1220;">
+        <div style="font-size:11px;color:#0b1220;">
           <strong>Name:</strong> ${invoice.clientName ?? 'N/A'}<br/>
           <strong>Address:</strong> ${invoice.clientAddress ?? 'N/A'}<br/>
           ${invoice.mobile ? `<strong>Mobile:</strong> ${invoice.mobile}<br/>` : ''}
@@ -482,18 +487,24 @@ function buildInvoiceHtml(invoice: any) {
       </tbody>
     </table>
 
-    <div style="display:flex;gap:12px;align-items:flex-start;">
-      <div style="flex:1;">
-        <div style="font-size:12px;font-weight:700;color:#0b1220;">Bank Details</div>
-        <div style="font-size:11.5px;color:#374151;margin-top:6px;">
+    <div class="bottom-split">
+      <div class="bottom-left">
+        <div style="font-size:11.5px;font-weight:700;color:#0b1220;">Bank Details</div>
+        <div style="font-size:11px;color:#374151;margin-top:2px;">
           Bank Name: SBI BANK - Shahjalam Gate<br/>
-          A/C: 30231750262<br/>
-          IFSC: SBIN0003046
+          A/C: 30231750262 &nbsp;|&nbsp; IFSC: SBIN0003046
         </div>
 
-        <div style="margin-top:12px;font-size:11.2px;color:#475569;">
+        ${amountWordsHtml}
+
+        <div style="margin-top:6px;font-size:10px;color:#374151;text-transform:uppercase;">
           <strong>Terms &amp; Conditions:</strong>
-          ${termsHtml}
+          ${termsContent}
+        </div>
+
+        <div style="font-size:10px;color:#475569;margin-top:4px;">
+          ${notesHtml}
+          ${certHtml}
         </div>
       </div>
 
@@ -507,42 +518,27 @@ function buildInvoiceHtml(invoice: any) {
       </div>
     </div>
 
-    <div class="footer">
-      <div class="notes">
-        ${invoice.amountInWords ? `<div style="font-weight:800;margin-bottom:6px">Amount in Words: ${invoice.amountInWords}</div>` : ''}
-        <div style="font-size:11.2px;color:#475569;margin-top:6px;">
-          Certified that the particulars given above are true &amp; correct. For <strong>MUSTAK KHAN</strong>. Use the top QR to validate authenticity instantly.
-        </div>
-        ${invoice.notes ? `<div style="margin-top:8px;font-size:11.2px;color:#374151;"><strong>Notes:</strong> ${invoice.notes}</div>` : ''}
-      </div>
-    </div>
-
-    <!-- Signature + PhonePe QR row -->
     <div class="sign-block">
       <div style="text-align:center;">
-        <div class="signature-line">Customer Signature</div>
+        <div style="height: 25px;"></div> <div class="signature-line">Customer Signature</div>
       </div>
 
       <div style="text-align:center;">
-        <div class="signature-line">Authorised Signatory</div>
+        <div style="height: 25px;"></div> <div class="signature-line">Authorised Signatory</div>
       </div>
 
       <div class="phonepe-box" title="Pay via PhonePe">
         <h5>Pay via PhonePe</h5>
         ${phonePeHtml}
-        <div style="font-size:11px;color:#475569;margin-top:8px;">Scan to marrrrr</div>
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:14px;font-size:10.5px;color:#6b7280;">This is a computer generated invoice.</div>
+    <div style="text-align:center;margin-top:6px;font-size:10px;color:#6b7280;">This is a computer generated invoice.</div>
   </div>
 </body>
 </html>`;
 }
 
-/**
- * Wait for images to load on the page (safety timeout)
- */
 async function waitForImagesLoad(page: Page, timeoutMs = 6000) {
   await page.evaluate(
     (timeout: number) =>
@@ -576,18 +572,13 @@ export async function GET(_req: NextRequest) {
     const db = client.db(DB_NAME);
     const collection = db.collection(COLLECTION_NAME);
 
-    // Get latest invoice (you can change query if you wish to fetch by id)
     const latest = await collection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
     if (!latest.length) {
       return NextResponse.json({ message: 'No invoices found.' }, { status: 404 });
     }
 
     const invoice = latest[0];
-
-    // Build HTML
     const html = buildInvoiceHtml(invoice);
-
-    // Launch puppeteer
     const browser = await puppeteer.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
@@ -599,14 +590,9 @@ export async function GET(_req: NextRequest) {
 
     const page = await browser.newPage();
     await page.setViewport({ width: baseWidthPx, height: baseHeightPx });
-
-    // Set HTML
     await page.setContent(html, { waitUntil: 'networkidle0' });
-
-    // Wait for all images (QRs) to load (or timeout)
     await waitForImagesLoad(page, 6000);
 
-    // Measure document height and shrink spacing if needed (no width scaling)
     const measureContentHeight = async () =>
       page.evaluate(() => {
         const el = document.documentElement || document.body;
@@ -615,7 +601,7 @@ export async function GET(_req: NextRequest) {
 
     let contentHeightPx = await measureContentHeight();
 
-    const verticalMarginsPx = 10 + 10; // margins used in pdf options
+    const verticalMarginsPx = 10 + 10; 
     const availableHeight = a4HeightPx - verticalMarginsPx;
 
     const extraDensityClasses = ['density-tight', 'density-micro'];
@@ -680,12 +666,3 @@ export async function GET(_req: NextRequest) {
     await client.close().catch(() => {});
   }
 }
-
-/*
-  LOCAL TEST / DEBUG NOTES:
-  - To test PhonePe QR locally, put your file at: ./public/phonepe-qr.jpg
-  - You previously uploaded a sample file at: /mnt/data/Screenshot 2025-11-21 152144.png
-    (You can use that path in invoice.qrCode for local tests if desired.)
-  - Recommended storage for persistent QR: store invoice.qrCode as a "data:" URI
-    (e.g. "data:image/png;base64,<base64>") wheen creating invoices — that guarantees it embeds everywhere.
-*/
