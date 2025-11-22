@@ -45,8 +45,7 @@ const client = new MongoClient(uri, {
 // Generate invoice number in format INV-YYYY-NNN
 async function generateInvoiceNumber(db: any, year: string): Promise<string> {
   const collection = db.collection(collectionName);
-  
-  // Find the latest invoice for the given year
+
   const latestInvoice = await collection
     .find({ invoiceNumber: { $regex: `^INV-${year}-` } })
     .sort({ invoiceNumber: -1 })
@@ -60,7 +59,6 @@ async function generateInvoiceNumber(db: any, year: string): Promise<string> {
     sequence = lastSequence + 1;
   }
 
-  // Pad sequence to three digits (e.g., 001, 002, etc.)
   const paddedSequence = sequence.toString().padStart(3, '0');
   return `INV-${year}-${paddedSequence}`;
 }
@@ -68,7 +66,6 @@ async function generateInvoiceNumber(db: any, year: string): Promise<string> {
 // POST handler for the /api/mustaksaveinvoice endpoint
 export async function POST(req: NextRequest) {
   try {
-    // Parse the request body
     const body: InvoiceData = await req.json();
 
     // Validate required fields
@@ -83,8 +80,11 @@ export async function POST(req: NextRequest) {
       !body.amountInWords
     ) {
       return NextResponse.json(
-        { message: 'Missing required fields: date, clientName, clientAddress, at least one of email or mobile, items, totalAmount, and amountInWords are required' },
-        { status: 400 }
+        {
+          message:
+            'Missing required fields: date, clientName, clientAddress, at least one of email or mobile, items, totalAmount, and amountInWords are required',
+        },
+        { status: 400 },
       );
     }
 
@@ -93,22 +93,19 @@ export async function POST(req: NextRequest) {
     if (!dateRegex.test(body.date)) {
       return NextResponse.json(
         { message: 'Invalid date format. Use DD/MM/YYYY' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validate items
     for (const item of body.items) {
-      if (
-        !item.no ||
-        !item.description ||
-        !item.quantity ||
-        !item.rate ||
-        !item.amount
-      ) {
+      if (!item.no || !item.description || !item.quantity || !item.rate || !item.amount) {
         return NextResponse.json(
-          { message: 'Each item must have no, description, quantity, rate, and amount' },
-          { status: 400 }
+          {
+            message:
+              'Each item must have no, description, quantity, rate, and amount',
+          },
+          { status: 400 },
         );
       }
     }
@@ -129,13 +126,10 @@ export async function POST(req: NextRequest) {
 
     // Generate QR code (encoding the verify endpoint URL with invoiceNumber)
     const qrCodeDataURL = await QRCode.toDataURL(
-      `http://localhost:3000/${verifyRoute}?invoiceNumber=${invoiceNumber}&type=${documentType}`
+      `http://localhost:3000/${verifyRoute}?invoiceNumber=${invoiceNumber}&type=${documentType}`,
     );
 
-    // Dummy PDF link (replace with actual Cloudinary link later)
-    const pdfLink = `https://res.cloudinary.com/your-cloud-name/image/upload/v${Date.now()}/dummy-invoice-${invoiceNumber}.pdf`;
-
-    // Prepare the document to insert
+    // ✅ Prepare the document to insert (NO pdfLink)
     const document = {
       invoiceNumber,
       issuer,
@@ -145,13 +139,12 @@ export async function POST(req: NextRequest) {
       clientAddress: body.clientAddress,
       email: body.email || '',
       mobile: body.mobile || '',
-      gstin: body.gstin || '', // Default to empty string if not provided
-      notes: body.notes || '', // Default to empty string if not provided
+      gstin: body.gstin || '',
+      notes: body.notes || '',
       items: body.items,
       totalAmount: body.totalAmount,
       amountInWords: body.amountInWords,
-      qrCode: qrCodeDataURL, // Base64 QR code image
-      pdfLink,
+      qrCode: qrCodeDataURL,
       createdAt: new Date(),
     };
 
@@ -169,13 +162,17 @@ export async function POST(req: NextRequest) {
         invoiceId: result.insertedId.toString(),
         invoiceNumber,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error('Error saving invoice to MongoDB:', error);
     return NextResponse.json(
-      { message: `Failed to save invoice: ${error.message || 'Unknown error'}` },
-      { status: 500 }
+      {
+        message: `Failed to save invoice: ${
+          error.message || 'Unknown error'
+        }`,
+      },
+      { status: 500 },
     );
   }
 }

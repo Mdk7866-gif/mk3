@@ -41,7 +41,7 @@ const client = new MongoClient(uri, {
 // Generate quotation number in format QT-YYYY-NNN
 async function generateQuotationNumber(db: any, year: string): Promise<string> {
   const collection = db.collection(collectionName);
-  
+
   // Find the latest quotation for the given year
   const latestQuotation = await collection
     .find({ invoiceNumber: { $regex: `^QT-${year}-` } })
@@ -77,8 +77,11 @@ export async function POST(req: NextRequest) {
       body.items.length === 0
     ) {
       return NextResponse.json(
-        { message: 'Missing required fields: date, clientName, clientAddress, at least one of email or mobile, and items are required' },
-        { status: 400 }
+        {
+          message:
+            'Missing required fields: date, clientName, clientAddress, at least one of email or mobile, and items are required',
+        },
+        { status: 400 },
       );
     }
 
@@ -87,21 +90,19 @@ export async function POST(req: NextRequest) {
     if (!dateRegex.test(body.date)) {
       return NextResponse.json(
         { message: 'Invalid date format. Use DD/MM/YYYY' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validate items
     for (const item of body.items) {
-      if (
-        !item.no ||
-        !item.description ||
-        !item.quantity ||
-        !item.rate
-      ) {
+      if (!item.no || !item.description || !item.quantity || !item.rate) {
         return NextResponse.json(
-          { message: 'Each item must have no, description, quantity, and rate' },
-          { status: 400 }
+          {
+            message:
+              'Each item must have no, description, quantity, and rate',
+          },
+          { status: 400 },
         );
       }
     }
@@ -122,13 +123,10 @@ export async function POST(req: NextRequest) {
 
     // Generate QR code (encoding the verify endpoint URL with quotationNumber)
     const qrCodeDataURL = await QRCode.toDataURL(
-      `http://localhost:3000/${verifyRoute}?invoiceNumber=${quotationNumber}&type=${documentType}`
+      `http://localhost:3000/${verifyRoute}?invoiceNumber=${quotationNumber}&type=${documentType}`,
     );
 
-    // Dummy PDF link (replace with actual Cloudinary link later)
-    const pdfLink = `https://res.cloudinary.com/your-cloud-name/image/upload/v${Date.now()}/dummy-quotation-${quotationNumber}.pdf`;
-
-    // Prepare the document to insert
+    // ✅ Prepare the document to insert (NO pdfLink)
     const document = {
       invoiceNumber: quotationNumber,
       issuer,
@@ -138,11 +136,10 @@ export async function POST(req: NextRequest) {
       clientAddress: body.clientAddress,
       email: body.email || '',
       mobile: body.mobile || '',
-      gstin: body.gstin || '', // Default to empty string if not provided
-      notes: body.notes || '', // Default to empty string if not provided
+      gstin: body.gstin || '',
+      notes: body.notes || '',
       items: body.items,
-      qrCode: qrCodeDataURL, // Base64 QR code image
-      pdfLink,
+      qrCode: qrCodeDataURL,
       createdAt: new Date(),
     };
 
@@ -160,13 +157,17 @@ export async function POST(req: NextRequest) {
         quotationId: result.insertedId.toString(),
         invoiceNumber: quotationNumber,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error('Error saving quotation to MongoDB:', error);
     return NextResponse.json(
-      { message: `Failed to save quotation: ${error.message || 'Unknown error'}` },
-      { status: 500 }
+      {
+        message: `Failed to save quotation: ${
+          error.message || 'Unknown error'
+        }`,
+      },
+      { status: 500 },
     );
   }
 }
