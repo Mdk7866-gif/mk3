@@ -1,7 +1,7 @@
 // src/app/api/mushahidgeneratequotationpdff/route.ts
 import fs from 'fs';
 import path from 'path';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 import puppeteer, { Page } from 'puppeteer';
 
@@ -26,16 +26,77 @@ const DEFAULT_PUBLIC_BASE_URL =
   normalizedVercelUrl ||
   'https://mk3.vercel.app';
 
+/* ---------- TYPES ---------- */
+
+interface QuotationItem {
+  no?: number;
+  description?: string;
+  quantity?: number | string;
+  rate?: number | string;
+  amount?: number | string;
+  totalAmount?: number | string;
+}
+
+interface Quotation {
+  _id?: unknown;
+
+  qrCode?: unknown;
+  qr?: unknown;
+
+  verificationUrl?: string;
+  verifyUrl?: string;
+  qrLink?: string;
+
+  invoiceNumber?: string; // used as quotation number
+  issuer?: string;
+  documentType?: string;
+
+  paymentLink?: string;
+  paymentUrl?: string;
+  paymentPage?: string;
+  phonePeLink?: string;
+  gpayLink?: string;
+  paytmLink?: string;
+
+  upiId?: string;
+  upi?: string;
+  upiName?: string;
+  clientName?: string;
+  clientAddress?: string;
+  mobile?: string;
+  email?: string;
+  gstin?: string;
+
+  items?: QuotationItem[];
+
+  amountInWords?: string;
+  notes?: string;
+  date?: string;
+
+  totalAmountAfterTax?: number | string;
+  totalAmount?: number | string;
+
+  createdAt?: Date | string;
+
+  [key: string]: unknown;
+}
+
 const client = new MongoClient(MONGODB_URI, {
   serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true },
 });
 
-function getQrDataUri(qrAny: any): string | null {
+/* ---------- HELPERS ---------- */
+
+function getQrDataUri(qrAny: unknown): string | null {
   try {
     if (!qrAny) return null;
+
     const qr =
-      typeof qrAny === 'object' && (qrAny.qrCode || qrAny.qr)
-        ? qrAny.qrCode ?? qrAny.qr
+      typeof qrAny === 'object' &&
+      qrAny !== null &&
+      ('qrCode' in qrAny || 'qr' in qrAny)
+        ? ((qrAny as { qrCode?: unknown; qr?: unknown }).qrCode ??
+           (qrAny as { qrCode?: unknown; qr?: unknown }).qr)
         : qrAny;
 
     if (!qr) return null;
@@ -57,7 +118,7 @@ function getQrDataUri(qrAny: any): string | null {
           return `data:${mime};base64,${fileBuffer.toString('base64')}`;
         }
       } catch {
-        /* ignore */
+        // ignore file errors
       }
     }
 
@@ -65,12 +126,15 @@ function getQrDataUri(qrAny: any): string | null {
       return `data:image/png;base64,${qr.replace(/\s+/g, '')}`;
     }
 
-    if (qr && typeof qr === 'object' && (qr as any).buffer) {
-      const b = Buffer.isBuffer((qr as any).buffer) ? (qr as any).buffer : Buffer.from((qr as any).buffer);
+    if (qr && typeof qr === 'object' && 'buffer' in qr) {
+      const bufLike = (qr as { buffer: Buffer | ArrayBuffer | Uint8Array }).buffer;
+      const b = Buffer.isBuffer(bufLike) ? bufLike : Buffer.from(bufLike as ArrayBuffer);
       return `data:image/png;base64,${b.toString('base64')}`;
     }
 
-    if (Buffer.isBuffer(qr)) return `data:image/png;base64,${qr.toString('base64')}`;
+    if (Buffer.isBuffer(qr)) {
+      return `data:image/png;base64,${qr.toString('base64')}`;
+    }
 
     if (Array.isArray(qr) && qr.length > 0 && typeof qr[0] === 'number') {
       return `data:image/png;base64,${Buffer.from(qr).toString('base64')}`;
@@ -98,14 +162,20 @@ function loadLocalImageAsDataURI(relPath: string): string | null {
   }
 }
 
-function buildVerificationUrl(doc: any): string | null {
-  const rawUrl = doc?.verificationUrl || doc?.verifyUrl || doc?.qrLink;
-  if (typeof rawUrl === 'string' && rawUrl.length > 4) return rawUrl;
+function buildVerificationUrl(doc: Quotation): string | null {
+  const rawUrl =
+    (typeof doc.verificationUrl === 'string' && doc.verificationUrl.length > 4 && doc.verificationUrl) ||
+    (typeof doc.verifyUrl === 'string' && doc.verifyUrl.length > 4 && doc.verifyUrl) ||
+    (typeof doc.qrLink === 'string' && doc.qrLink.length > 4 && doc.qrLink) ||
+    null;
 
-  const invoiceNumber = doc?.invoiceNumber; // quotation number kept in same field
+  if (rawUrl) return rawUrl;
+
+  const invoiceNumber = doc.invoiceNumber;
   if (!invoiceNumber) return null;
 
-  const issuer = (doc?.issuer || '').toLowerCase();
+  const issuer = (doc.issuer ?? '').toString().toLowerCase();
+
   const pathname =
     issuer === 'mushahid'
       ? '/verifyqrcodefrontendmushahid'
@@ -113,39 +183,75 @@ function buildVerificationUrl(doc: any): string | null {
       ? '/verifyqrcodefrontendmustak'
       : '/verifyqrcodefrontendmushahid';
 
-  const url = new URL(
-    pathname,
-    DEFAULT_PUBLIC_BASE_URL.startsWith('http') ? DEFAULT_PUBLIC_BASE_URL : `https://${DEFAULT_PUBLIC_BASE_URL}`,
-  );
+  const base =
+    DEFAULT_PUBLIC_BASE_URL.startsWith('http')
+      ? DEFAULT_PUBLIC_BASE_URL
+      : `https://${DEFAULT_PUBLIC_BASE_URL}`;
+
+  const url = new URL(pathname, base);
   url.searchParams.set('invoiceNumber', invoiceNumber);
-  if (doc?.documentType) url.searchParams.set('type', doc.documentType);
+  if (doc.documentType) url.searchParams.set('type', String(doc.documentType));
   url.searchParams.set('issuer', issuer || 'mushahid');
+
   return url.toString();
 }
 
-function buildPaymentLinks(doc: any, amountOverride?: number): { primary: string; deepLink?: string } | null {
+function buildPaymentLinks(
+  doc: Quotation,
+  amountOverride?: number,
+): { primary: string; deepLink?: string } | null {
   const direct =
-    doc?.paymentLink || doc?.paymentUrl || doc?.paymentPage || doc?.phonePeLink || doc?.gpayLink || doc?.paytmLink;
-  if (typeof direct === 'string' && direct.length > 4) return { primary: direct };
+    (typeof doc.paymentLink === 'string' && doc.paymentLink) ||
+    (typeof doc.paymentUrl === 'string' && doc.paymentUrl) ||
+    (typeof doc.paymentPage === 'string' && doc.paymentPage) ||
+    (typeof doc.phonePeLink === 'string' && doc.phonePeLink) ||
+    (typeof doc.gpayLink === 'string' && doc.gpayLink) ||
+    (typeof doc.paytmLink === 'string' && doc.paytmLink) ||
+    '';
 
-  const upiIdRaw = doc?.upiId || doc?.upi || '9979131416@ybl';
+  if (direct && direct.length > 4) return { primary: direct };
+
+  const upiIdRaw =
+    (typeof doc.upiId === 'string' && doc.upiId) ||
+    (typeof doc.upi === 'string' && doc.upi) ||
+    '9979131416@ybl';
+
   const upiId = upiIdRaw.replace(/\s+/g, '');
-  const payeeName = doc?.upiName || doc?.clientName || 'MUSHAHID KHAN';
+  const payeeName =
+    (typeof doc.upiName === 'string' && doc.upiName) ||
+    (typeof doc.clientName === 'string' && doc.clientName) ||
+    'MUSHAHID KHAN';
 
   const fallbackItemsTotal =
-    Array.isArray(doc?.items) && doc.items.length
-      ? doc.items.reduce((sum: number, it: any) => {
-          const qty = parseFloat(it.quantity ?? 0) || 0;
-          const rate = parseFloat(it.rate ?? 0) || 0;
-          const amt = parseFloat(it.totalAmount ?? it.amount ?? qty * rate) || 0;
+    Array.isArray(doc.items) && doc.items.length
+      ? doc.items.reduce((sum: number, it: QuotationItem) => {
+          const qty = Number(it.quantity ?? 0) || 0;
+          const rate = Number(it.rate ?? 0) || 0;
+          const directAmt = it.totalAmount ?? it.amount;
+          const amt =
+            directAmt !== undefined && directAmt !== null && directAmt !== ''
+              ? Number(directAmt) || 0
+              : qty * rate;
           return sum + amt;
         }, 0)
       : undefined;
 
-  const amount = amountOverride ?? doc?.totalAmountAfterTax ?? doc?.totalAmount ?? fallbackItemsTotal;
+  const amountRaw =
+    amountOverride ??
+    doc.totalAmountAfterTax ??
+    doc.totalAmount ??
+    fallbackItemsTotal;
 
-  const upiParams = new URLSearchParams({ pa: upiId, pn: payeeName, cu: 'INR', mode: '02' });
-  if (amount) upiParams.set('am', String(amount));
+  const upiParams = new URLSearchParams({
+    pa: upiId,
+    pn: payeeName,
+    cu: 'INR',
+    mode: '02',
+  });
+
+  if (amountRaw !== undefined && amountRaw !== null && amountRaw !== '') {
+    upiParams.set('am', String(amountRaw));
+  }
 
   const httpsLink = `https://upi.me/pay?${upiParams.toString()}`;
   const deepLink = `upi://pay?${upiParams.toString()}`;
@@ -153,28 +259,37 @@ function buildPaymentLinks(doc: any, amountOverride?: number): { primary: string
   return { primary: httpsLink, deepLink };
 }
 
-function buildQuotationHtml(quotation: any) {
+function buildQuotationHtml(quotation: Quotation): string {
   const qrDataUri = getQrDataUri(quotation.qrCode ?? quotation.qr);
   const phonePeQr = loadLocalImageAsDataURI('phonepe-qr.jpg');
   const verificationUrl = buildVerificationUrl(quotation);
 
-  const items = quotation.items || [];
+  const items: QuotationItem[] = quotation.items ?? [];
   const itemsCount = items.length;
-  const densityClass = itemsCount > 34 ? 'density-ultra' : itemsCount > 24 ? 'density-compact' : 'density-regular';
+  const densityClass =
+    itemsCount > 34 ? 'density-ultra' : itemsCount > 24 ? 'density-compact' : 'density-regular';
 
-  const computeAmount = (item: any) => {
-    const qty = parseFloat(item.quantity ?? 0) || 0;
-    const rate = parseFloat(item.rate ?? 0) || 0;
-    return parseFloat(item.amount ?? item.totalAmount ?? qty * rate) || 0;
+  const computeAmount = (item: QuotationItem): number => {
+    const qty = Number(item.quantity ?? 0) || 0;
+    const rate = Number(item.rate ?? 0) || 0;
+    const directAmt = item.amount ?? item.totalAmount;
+    const amt =
+      directAmt !== undefined && directAmt !== null && directAmt !== ''
+        ? Number(directAmt) || 0
+        : qty * rate;
+    return amt || 0;
   };
 
-  const grandTotal: number = items.reduce((sum: number, item: any) => sum + computeAmount(item), 0);
+  const grandTotal: number = items.reduce(
+    (sum: number, item: QuotationItem) => sum + computeAmount(item),
+    0,
+  );
 
   const paymentLinks = buildPaymentLinks(quotation, grandTotal);
 
   const itemsRows = items
     .map(
-      (item: any) => `
+      (item: QuotationItem) => `
       <tr>
         <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
           item.no ?? ''
@@ -185,11 +300,11 @@ function buildQuotationHtml(quotation: any) {
         <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
           item.quantity ?? ''
         }</td>
-        <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(
-          parseFloat(item.rate || 0) || 0
+        <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${Number(
+          item.rate ?? 0,
         ).toFixed(2)}</td>
-        <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(
-          computeAmount(item) || 0
+        <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${computeAmount(
+          item,
         ).toFixed(2)}</td>
       </tr>`,
     )
@@ -208,9 +323,9 @@ function buildQuotationHtml(quotation: any) {
 
   const paymentHref = paymentLinks?.primary || '#';
   const phonePeHtml = phonePeQr
-    ? `<a href="${paymentHref}" ${paymentLinks ? 'target="_blank" rel="noopener noreferrer"' : ''} ${
-        paymentLinks?.deepLink ? `data-upi-link="${paymentLinks.deepLink}"` : ''
-      } style="display:block;text-decoration:none;color:inherit;">
+    ? `<a href="${paymentHref}" ${
+        paymentLinks ? 'target="_blank" rel="noopener noreferrer"' : ''
+      } ${paymentLinks?.deepLink ? `data-upi-link="${paymentLinks.deepLink}"` : ''} style="display:block;text-decoration:none;color:inherit;">
         <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
         <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
       </a>`
@@ -232,7 +347,13 @@ function buildQuotationHtml(quotation: any) {
     ? `<div style="margin-top:3px;"><strong>Notes:</strong><br/>${quotation.notes}</div>`
     : '';
 
-  const certHtml = `<div style="margin-top:3px;">Certified that the particulars given above are true &amp; correct. For <strong>MUSHAHID KHAN</strong>.</div>`;
+  const certHtml =
+    '<div style="margin-top:3px;">Certified that the particulars given above are true &amp; correct. For <strong>MUSHAHID KHAN</strong>.</div>';
+
+  const quotationDate =
+    typeof quotation.date === 'string' && quotation.date
+      ? quotation.date
+      : new Date().toLocaleDateString('en-IN');
 
   return `<!doctype html>
 <html lang="en">
@@ -321,9 +442,7 @@ function buildQuotationHtml(quotation: any) {
 
       <div class="meta">
         <div><strong>Quotation No:</strong> ${quotation.invoiceNumber ?? 'N/A'}</div>
-        <div style="text-align:right"><strong>Quotation Date:</strong> ${
-          quotation.date ?? new Date().toLocaleDateString('en-IN')
-        }</div>
+        <div style="text-align:right"><strong>Quotation Date:</strong> ${quotationDate}</div>
       </div>
 
       <div class="section">
@@ -379,7 +498,8 @@ function buildQuotationHtml(quotation: any) {
         </div>
         <div class="totals" role="note" aria-label="Amount Summary">
           <div class="row total">
-          
+            <div><strong>Total Quotation Amount</strong></div>
+            <div>₹${grandTotal.toFixed(2)}</div>
           </div>
         </div>
       </div>
@@ -406,7 +526,7 @@ function buildQuotationHtml(quotation: any) {
   </html>`;
 }
 
-async function waitForImagesLoad(page: Page, timeoutMs = 6000) {
+async function waitForImagesLoad(page: Page, timeoutMs = 6000): Promise<void> {
   await page.evaluate(
     (timeout: number) =>
       new Promise<void>((resolve) => {
@@ -418,14 +538,15 @@ async function waitForImagesLoad(page: Page, timeoutMs = 6000) {
           if (settled >= imgs.length) resolve();
         };
         imgs.forEach((img) => {
-          if ((img as HTMLImageElement).complete) return done();
+          const htmlImg = img as HTMLImageElement;
+          if (htmlImg.complete) return done();
           const onDone = () => {
-            (img as HTMLImageElement).removeEventListener('load', onDone);
-            (img as HTMLImageElement).removeEventListener('error', onDone);
+            htmlImg.removeEventListener('load', onDone);
+            htmlImg.removeEventListener('error', onDone);
             done();
           };
-          (img as HTMLImageElement).addEventListener('load', onDone);
-          (img as HTMLImageElement).addEventListener('error', onDone);
+          htmlImg.addEventListener('load', onDone);
+          htmlImg.addEventListener('error', onDone);
         });
         setTimeout(() => resolve(), timeout);
       }),
@@ -433,11 +554,13 @@ async function waitForImagesLoad(page: Page, timeoutMs = 6000) {
   );
 }
 
-export async function GET(_req: NextRequest) {
+/* ---------- ROUTE HANDLER ---------- */
+
+export async function GET(): Promise<NextResponse> {
   try {
     await client.connect();
     const db = client.db(DB_NAME);
-    const collection = db.collection(COLLECTION_NAME);
+    const collection = db.collection<Quotation>(COLLECTION_NAME);
 
     const latest = await collection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
 
@@ -458,7 +581,7 @@ export async function GET(_req: NextRequest) {
     await page.setContent(html, { waitUntil: 'networkidle0' });
     await waitForImagesLoad(page, 6000);
 
-    const measureContentHeight = async () =>
+    const measureContentHeight = async (): Promise<number> =>
       page.evaluate(() => {
         const el = document.documentElement || document.body;
         return Math.max(el.scrollHeight, el.offsetHeight, el.clientHeight);
@@ -468,10 +591,10 @@ export async function GET(_req: NextRequest) {
     const verticalMarginsPx = 5 + 5;
     const availableHeight = a4HeightPx - verticalMarginsPx;
 
-    const extraDensityClasses = ['density-tight', 'density-micro'];
+    const extraDensityClasses: string[] = ['density-tight', 'density-micro'];
     if (contentHeightPx > availableHeight) {
       for (const density of extraDensityClasses) {
-        await page.evaluate((densityClass) => {
+        await page.evaluate((densityClass: string) => {
           if (!document.body.classList.contains(densityClass)) {
             document.body.classList.add(densityClass);
           }
@@ -506,13 +629,16 @@ export async function GET(_req: NextRequest) {
         'Cache-Control': 'no-store',
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating quotation PDF:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { message: `Failed to generate quotation PDF: ${error?.message ?? 'Unknown error'}` },
+      { message: `Failed to generate quotation PDF: ${message}` },
       { status: 500 },
     );
   } finally {
-    await client.close().catch(() => {});
+    await client.close().catch(() => {
+      // ignore
+    });
   }
 }

@@ -129,7 +129,7 @@ const ItemsDetailsGst: React.FC<ItemsDetailsGstProps> = ({ onItemsChange, initia
       setItems((prevItems) => {
         return prevItems.map((item) => {
           if (item.id === id) {
-            let updatedItem = { ...item, [field]: value };
+            const updatedItem = { ...item, [field]: value };
 
             const qty = field === 'quantity'
               ? (typeof value === 'string' ? parseFloat(value) || 0 : value || 0) as number

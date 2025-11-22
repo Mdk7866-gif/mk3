@@ -85,7 +85,7 @@ const ItemsDetailsInvoice: React.FC<ItemsDetailsInvoiceProps> = ({ onItemsChange
       setItems((prevItems) => {
         return prevItems.map((item) => {
           if (item.id === id) {
-            let updatedItem = { ...item, [field]: value };
+            const updatedItem = { ...item, [field]: value };
 
             // For quantity and rate, parse to number, default to 0 for calculations
             const qty = field === 'quantity'

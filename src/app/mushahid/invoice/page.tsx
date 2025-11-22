@@ -144,7 +144,7 @@ export default function MushahidInvoicePage() {
         item.amount > 0 &&
         (typeof item.quantity === "number"
           ? item.quantity > 0
-          : parseFloat(item.quantity as any) > 0)
+          : parseFloat(item.quantity as string) > 0)
     );
 
     if (validItems.length === 0) {
