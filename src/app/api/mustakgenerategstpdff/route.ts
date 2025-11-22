@@ -1,4 +1,4 @@
-// src/app/api/mushahidgenerategstpdf/route.ts
+// src/app/api/mustakgenerategstpdff/route.ts
 import fs from 'fs';
 import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
@@ -85,11 +85,11 @@ function buildVerificationUrl(invoice: any): string | null {
   const invoiceNumber = invoice?.invoiceNumber;
   if (!invoiceNumber) return null;
   const issuer = (invoice?.issuer || '').toLowerCase();
-  const pathname = issuer === 'mushahid' ? '/verifyqrcodefrontendmushahid' : issuer === 'mustak' ? '/verifyqrcodefrontendmustak' : '/verifyqrcodefrontendmushahid';
+  const pathname = issuer === 'mushahid' ? '/verifyqrcodefrontendmushahid' : issuer === 'mustak' ? '/verifyqrcodefrontendmustak' : '/verifyqrcodefrontendmustak';
   const url = new URL(pathname, DEFAULT_PUBLIC_BASE_URL.startsWith('http') ? DEFAULT_PUBLIC_BASE_URL : `https://${DEFAULT_PUBLIC_BASE_URL}`);
   url.searchParams.set('invoiceNumber', invoiceNumber);
   if (invoice?.documentType) url.searchParams.set('type', invoice.documentType);
-  url.searchParams.set('issuer', issuer || 'mushahid');
+  url.searchParams.set('issuer', issuer || 'mustak');
   return url.toString();
 }
 
@@ -116,16 +116,17 @@ function buildInvoiceHtml(invoice: any) {
   const densityClass = itemsCount > 34 ? 'density-ultra' : itemsCount > 24 ? 'density-compact' : 'density-regular';
 
   const itemsRows = (invoice.items || []).map((item: any) => `
-      <tr>
-        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.no ?? ''}</td>
-        <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.description ?? ''}</td>
-        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.hsn || '-'}</td>
-        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.quantity ?? ''}</td>
-        <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(parseFloat(item.rate || 0)).toFixed(2)}</td>
-        <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(parseFloat(item.taxableAmount || 0)).toFixed(2)}</td>
-        <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.gst ?? ''}%</td>
-        <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;font-weight:600;">₹${(parseFloat(item.totalAmount || 0)).toFixed(2)}</td>
-      </tr>`).join('');
+  <tr>
+    <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.no ?? ''}</td>
+    <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.description ?? ''}</td>
+    <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.hsn || '-'}</td>
+    <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.quantity ?? ''}</td>
+    <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(parseFloat(item.rate || 0)).toFixed(2)}</td>
+    <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(parseFloat(item.taxableAmount || 0)).toFixed(2)}</td>
+    <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(parseFloat(item.gst || 0)).toFixed(2)}</td>
+    <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;font-weight:600;">₹${(parseFloat(item.totalAmount || 0)).toFixed(2)}</td>
+  </tr>`).join('');
+
 
   const qrImage = qrDataUri
     ? `<img alt="Invoice QR" src="${qrDataUri}" style="width:88px;height:88px;display:block;margin:0 auto;" decoding="async" />`
@@ -332,7 +333,7 @@ function buildInvoiceHtml(invoice: any) {
           <th style="width:8%;">QTY.</th>
           <th style="width:12%;">Rate</th>
           <th style="width:12%;">Taxable Value</th>
-          <th style="width:8%;">GST</th>
+          <th style="width:8%;">GST(18%)</th>
           <th style="width:12%;">Total</th>
         </tr>
       </thead>

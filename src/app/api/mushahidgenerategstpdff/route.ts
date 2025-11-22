@@ -1,4 +1,4 @@
-// src/app/api/mushahidgenerategstpdf/route.ts
+// src/app/api/mushahidgenerategstpdff/route.ts
 import fs from 'fs';
 import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
@@ -98,7 +98,7 @@ function buildPaymentLinks(invoice: any): { primary: string; deepLink?: string }
     if (typeof direct === 'string' && direct.length > 4) return { primary: direct };
     const upiIdRaw = invoice?.upiId || invoice?.upi || '9979131416@ybl';
     const upiId = upiIdRaw.replace(/\s+/g, '');
-    const payeeName = invoice?.upiName || invoice?.clientName || 'MUSTAK KHAN';
+    const payeeName = invoice?.upiName || invoice?.clientName || 'MUSHAHID KHAN';
     const amount = invoice?.totalAmountAfterTax || invoice?.totalAmount;
     const upiParams = new URLSearchParams({ pa: upiId, pn: payeeName, cu: 'INR', mode: '02' });
     if (amount) upiParams.set('am', String(amount));
@@ -123,9 +123,10 @@ function buildInvoiceHtml(invoice: any) {
         <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.quantity ?? ''}</td>
         <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(parseFloat(item.rate || 0)).toFixed(2)}</td>
         <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(parseFloat(item.taxableAmount || 0)).toFixed(2)}</td>
-        <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.gst ?? ''}%</td>
+        <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(parseFloat(item.gst || 0)).toFixed(2)}</td>
         <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;font-weight:600;">₹${(parseFloat(item.totalAmount || 0)).toFixed(2)}</td>
       </tr>`).join('');
+
 
     const qrImage = qrDataUri
         ? `<img alt="Invoice QR" src="${qrDataUri}" style="width:88px;height:88px;display:block;margin:0 auto;" decoding="async" />`
@@ -156,7 +157,7 @@ function buildInvoiceHtml(invoice: any) {
 
     const amountWordsHtml = invoice.amountInWords ? `<div style="margin-top:4px;font-weight:800;font-size:10.5px;color:#0b1220;">Amount in Words: ${invoice.amountInWords}</div>` : '';
     const notesHtml = invoice.notes ? `<div style="margin-top:3px;"><strong>Notes:</strong> ${invoice.notes}</div>` : '';
-    const certHtml = `<div style="margin-top:3px;">Certified that the particulars given above are true &amp; correct. For <strong>MUSTAK KHAN</strong>.</div>`;
+    const certHtml = `<div style="margin-top:3px;">Certified that the particulars given above are true &amp; correct. For <strong>MUSHAHID KHAN</strong>.</div>`;
 
     return `<!doctype html>
 <html lang="en">
@@ -332,7 +333,7 @@ function buildInvoiceHtml(invoice: any) {
           <th style="width:8%;">QTY.</th>
           <th style="width:12%;">Rate</th>
           <th style="width:12%;">Taxable Value</th>
-          <th style="width:8%;">GST</th>
+          <th style="width:8%;">GST(18%)</th>
           <th style="width:12%;">Total</th>
         </tr>
       </thead>
