@@ -515,12 +515,6 @@ function buildInvoiceHtml(invoice: any) {
         </div>
         ${invoice.notes ? `<div style="margin-top:8px;font-size:11.2px;color:#374151;"><strong>Notes:</strong> ${invoice.notes}</div>` : ''}
       </div>
-
-      <div style="width:220px;">
-        <div style="text-align:center;">
-          <div class="signature-line">Authorised Signatory</div>
-        </div>
-      </div>
     </div>
 
     <!-- Signature + PhonePe QR row -->
@@ -536,7 +530,7 @@ function buildInvoiceHtml(invoice: any) {
       <div class="phonepe-box" title="Pay via PhonePe">
         <h5>Pay via PhonePe</h5>
         ${phonePeHtml}
-        <div style="font-size:11px;color:#475569;margin-top:8px;">Scan to pay</div>
+        <div style="font-size:11px;color:#475569;margin-top:8px;">Scan to marrrrr</div>
       </div>
     </div>
 
@@ -693,5 +687,5 @@ export async function GET(_req: NextRequest) {
   - You previously uploaded a sample file at: /mnt/data/Screenshot 2025-11-21 152144.png
     (You can use that path in invoice.qrCode for local tests if desired.)
   - Recommended storage for persistent QR: store invoice.qrCode as a "data:" URI
-    (e.g. "data:image/png;base64,<base64>") when creating invoices — that guarantees it embeds everywhere.
+    (e.g. "data:image/png;base64,<base64>") wheen creating invoices — that guarantees it embeds everywhere.
 */
