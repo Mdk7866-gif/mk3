@@ -1,6 +1,6 @@
 // src/app/api/mustaksavequotation/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import { MongoClient, ServerApiVersion, Db } from 'mongodb';
 import QRCode from 'qrcode';
 
 // Define the expected shape of a single item
@@ -39,7 +39,7 @@ const client = new MongoClient(uri, {
 });
 
 // Generate quotation number in format QT-YYYY-NNN
-async function generateQuotationNumber(db: any, year: string): Promise<string> {
+async function generateQuotationNumber(db: Db, year: string): Promise<string> {
   const collection = db.collection(collectionName);
 
   // Find the latest quotation for the given year
@@ -159,13 +159,12 @@ export async function POST(req: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving quotation to MongoDB:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
-        message: `Failed to save quotation: ${
-          error.message || 'Unknown error'
-        }`,
+        message: `Failed to save quotation: ${errorMessage}`,
       },
       { status: 500 },
     );

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import { MongoClient, ServerApiVersion, Db } from 'mongodb';
 import QRCode from 'qrcode';
 
 // Define the expected shape of a single item
@@ -47,7 +47,7 @@ const client = new MongoClient(uri, {
 });
 
 // Generate invoice number in format INV-YYYY-NNN
-async function generateInvoiceNumber(db: any, year: string): Promise<string> {
+async function generateInvoiceNumber(db: Db, year: string): Promise<string> {
   const collection = db.collection(collectionName);
 
   // Find the latest invoice for the given year
@@ -187,13 +187,12 @@ export async function POST(req: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving GST invoice to MongoDB:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
-        message: `Failed to save GST invoice: ${
-          error.message || 'Unknown error'
-        }`,
+        message: `Failed to save GST invoice: ${errorMessage}`,
       },
       { status: 500 },
     );

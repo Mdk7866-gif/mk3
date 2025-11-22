@@ -1,7 +1,7 @@
 // src/app/api/mustakgeneratequotationpdff/route.ts
 import fs from 'fs';
 import path from 'path';
-import { NextRequest, NextResponse } from 'next/server';
+import {  NextResponse } from 'next/server';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 import puppeteer, { Page } from 'puppeteer';
 

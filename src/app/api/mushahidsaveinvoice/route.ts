@@ -1,7 +1,7 @@
 // src/app/api/mushahidsaveinvoice/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import { MongoClient, ServerApiVersion, Db } from 'mongodb';
 import QRCode from 'qrcode';
 
 // Define the expected shape of a single item
@@ -41,7 +41,7 @@ const client = new MongoClient(uri, {
 });
 
 // Generate invoice number INV-YYYY-NNN
-async function generateInvoiceNumber(db: any, year: string): Promise<string> {
+async function generateInvoiceNumber(db: Db, year: string): Promise<string> {
   const collection = db.collection(collectionName);
 
   const latest = await collection
@@ -144,10 +144,11 @@ export async function POST(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving invoice:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { message: `Failed to save invoice: ${error.message || 'Unknown error'}` },
+      { message: `Failed to save invoice: ${errorMessage}` },
       { status: 500 }
     );
   }

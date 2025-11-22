@@ -112,12 +112,32 @@ export default function VerifyInvoicePage({ issuer, title }: VerifyInvoicePagePr
     }
   };
 
-  const items = data?.items ?? [];
-  const hasHsnColumn = useMemo(() => items.some((item) => Boolean(item.hsn)), [items]);
-  const hasTaxableColumn = useMemo(() => items.some((item) => item.taxableAmount !== undefined), [items]);
-  const hasGstColumn = useMemo(() => items.some((item) => item.gst !== undefined), [items]);
-  const hasItemTotalColumn = useMemo(() => items.some((item) => item.totalAmount !== undefined), [items]);
-  const hasAmountColumn = useMemo(() => items.some((item) => item.amount !== undefined), [items]);
+  // ✅ Memoize items so the reference is stable
+  const items = useMemo<InvoiceItem[]>(() => {
+    return data?.items ?? [];
+  }, [data?.items]);
+
+  // ✅ These now depend on a stable `items` reference
+  const hasHsnColumn = useMemo(
+    () => items.some((item) => Boolean(item.hsn)),
+    [items]
+  );
+  const hasTaxableColumn = useMemo(
+    () => items.some((item) => item.taxableAmount !== undefined),
+    [items]
+  );
+  const hasGstColumn = useMemo(
+    () => items.some((item) => item.gst !== undefined),
+    [items]
+  );
+  const hasItemTotalColumn = useMemo(
+    () => items.some((item) => item.totalAmount !== undefined),
+    [items]
+  );
+  const hasAmountColumn = useMemo(
+    () => items.some((item) => item.amount !== undefined),
+    [items]
+  );
 
   if (loading) {
     return (

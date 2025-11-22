@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     const db = client.db(dbName);
 
     const searchIssuers = issuer ? [issuer] : Object.keys(COLLECTION_MAP);
-    let resolvedInvoice: Record<string, any> | null = null;
+    let resolvedInvoice: Record<string, unknown> | null = null;
     let resolvedIssuer = issuer;
     let resolvedType = requestedType;
 
@@ -85,7 +85,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { _id, ...publicInvoice } = resolvedInvoice;
+    const publicInvoice = { ...(resolvedInvoice as Record<string, unknown>) };
+    delete (publicInvoice as Record<string, unknown>)._id;
 
     const response = {
       verified: true,
@@ -96,10 +97,11 @@ export async function GET(req: NextRequest) {
     };
 
     return NextResponse.json(response, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error verifying QR code/invoice:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { message: `Verification failed: ${error.message || 'Unknown error'}` },
+      { message: `Verification failed: ${message}` },
       { status: 500 }
     );
   } finally {
