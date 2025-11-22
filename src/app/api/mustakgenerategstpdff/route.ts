@@ -10,112 +10,112 @@ export const dynamic = 'force-dynamic';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DB_NAME = 'mk3';
-const COLLECTION_NAME = 'mushahidgst';
+const COLLECTION_NAME = 'mustakgst';
 
 const vercelUrl = process.env.VERCEL_URL;
 const normalizedVercelUrl = vercelUrl
-    ? vercelUrl.startsWith('http')
-        ? vercelUrl
-        : `https://${vercelUrl}`
-    : null;
+  ? vercelUrl.startsWith('http')
+    ? vercelUrl
+    : `https://${vercelUrl}`
+  : null;
 
 const DEFAULT_PUBLIC_BASE_URL =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    process.env.SITE_URL ||
-    normalizedVercelUrl ||
-    'https://mk3.vercel.app';
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  process.env.SITE_URL ||
+  normalizedVercelUrl ||
+  'https://mk3.vercel.app';
 
 const client = new MongoClient(MONGODB_URI, {
-    serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-    },
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
 });
 
 function getQrDataUri(qrAny: any): string | null {
-    try {
-        if (!qrAny) return null;
-        const qr = typeof qrAny === 'object' && (qrAny.qrCode || qrAny.qr) ? (qrAny.qrCode ?? qrAny.qr) : qrAny;
-        if (!qr) return null;
-        if (typeof qr === 'string' && qr.startsWith('data:')) return qr;
-        if (typeof qr === 'string' && (qr.startsWith('http://') || qr.startsWith('https://'))) return qr;
-        if (typeof qr === 'string' && (qr.startsWith('/') || qr.includes('./') || qr.includes('../') || qr.includes('/mnt/'))) {
-            try {
-                const filePath = path.isAbsolute(qr) ? qr : path.resolve(process.cwd(), qr);
-                if (fs.existsSync(filePath)) {
-                    const fileBuffer = fs.readFileSync(filePath);
-                    const ext = path.extname(filePath).toLowerCase();
-                    const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
-                    return `data:${mime};base64,${fileBuffer.toString('base64')}`;
-                }
-            } catch (e) { /* empty */ }
+  try {
+    if (!qrAny) return null;
+    const qr = typeof qrAny === 'object' && (qrAny.qrCode || qrAny.qr) ? (qrAny.qrCode ?? qrAny.qr) : qrAny;
+    if (!qr) return null;
+    if (typeof qr === 'string' && qr.startsWith('data:')) return qr;
+    if (typeof qr === 'string' && (qr.startsWith('http://') || qr.startsWith('https://'))) return qr;
+    if (typeof qr === 'string' && (qr.startsWith('/') || qr.includes('./') || qr.includes('../') || qr.includes('/mnt/'))) {
+      try {
+        const filePath = path.isAbsolute(qr) ? qr : path.resolve(process.cwd(), qr);
+        if (fs.existsSync(filePath)) {
+          const fileBuffer = fs.readFileSync(filePath);
+          const ext = path.extname(filePath).toLowerCase();
+          const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
+          return `data:${mime};base64,${fileBuffer.toString('base64')}`;
         }
-        if (typeof qr === 'string' && /^[A-Za-z0-9+/=\s]+$/.test(qr) && qr.length > 100) {
-            return `data:image/png;base64,${qr.replace(/\s+/g, '')}`;
-        }
-        if (qr && typeof qr === 'object' && qr.buffer) {
-            const b = Buffer.isBuffer(qr.buffer) ? qr.buffer : Buffer.from(qr.buffer);
-            return `data:image/png;base64,${b.toString('base64')}`;
-        }
-        if (Buffer.isBuffer(qr)) return `data:image/png;base64,${qr.toString('base64')}`;
-        if (Array.isArray(qr) && qr.length > 0 && typeof qr[0] === 'number') {
-            return `data:image/png;base64,${Buffer.from(qr).toString('base64')}`;
-        }
-        return null;
-    } catch (err) { console.error('getQrDataUri error:', err); return null; }
+      } catch (e) { /* empty */ }
+    }
+    if (typeof qr === 'string' && /^[A-Za-z0-9+/=\s]+$/.test(qr) && qr.length > 100) {
+      return `data:image/png;base64,${qr.replace(/\s+/g, '')}`;
+    }
+    if (qr && typeof qr === 'object' && qr.buffer) {
+      const b = Buffer.isBuffer(qr.buffer) ? qr.buffer : Buffer.from(qr.buffer);
+      return `data:image/png;base64,${b.toString('base64')}`;
+    }
+    if (Buffer.isBuffer(qr)) return `data:image/png;base64,${qr.toString('base64')}`;
+    if (Array.isArray(qr) && qr.length > 0 && typeof qr[0] === 'number') {
+      return `data:image/png;base64,${Buffer.from(qr).toString('base64')}`;
+    }
+    return null;
+  } catch (err) { console.error('getQrDataUri error:', err); return null; }
 }
 
 function loadLocalImageAsDataURI(relPath: string): string | null {
-    try {
-        const safeRel = relPath.replace(/^\/+/, '');
-        const filePath = path.join(process.cwd(), 'public', safeRel);
-        if (!fs.existsSync(filePath)) return null;
-        const buffer = fs.readFileSync(filePath);
-        const ext = path.extname(filePath).toLowerCase();
-        const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
-        return `data:${mime};base64,${buffer.toString('base64')}`;
-    } catch (e) { console.error('loadLocalImageAsDataURI error:', e); return null; }
+  try {
+    const safeRel = relPath.replace(/^\/+/, '');
+    const filePath = path.join(process.cwd(), 'public', safeRel);
+    if (!fs.existsSync(filePath)) return null;
+    const buffer = fs.readFileSync(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
+    return `data:${mime};base64,${buffer.toString('base64')}`;
+  } catch (e) { console.error('loadLocalImageAsDataURI error:', e); return null; }
 }
 
 function buildVerificationUrl(invoice: any): string | null {
-    const rawUrl = invoice?.verificationUrl || invoice?.verifyUrl || invoice?.qrLink;
-    if (typeof rawUrl === 'string' && rawUrl.length > 4) return rawUrl;
-    const invoiceNumber = invoice?.invoiceNumber;
-    if (!invoiceNumber) return null;
-    const issuer = (invoice?.issuer || '').toLowerCase();
-    const pathname = issuer === 'mushahid' ? '/verifyqrcodefrontendmushahid' : issuer === 'mustak' ? '/verifyqrcodefrontendmustak' : '/verifyqrcodefrontendmushahid';
-    const url = new URL(pathname, DEFAULT_PUBLIC_BASE_URL.startsWith('http') ? DEFAULT_PUBLIC_BASE_URL : `https://${DEFAULT_PUBLIC_BASE_URL}`);
-    url.searchParams.set('invoiceNumber', invoiceNumber);
-    if (invoice?.documentType) url.searchParams.set('type', invoice.documentType);
-    url.searchParams.set('issuer', issuer || 'mushahid');
-    return url.toString();
+  const rawUrl = invoice?.verificationUrl || invoice?.verifyUrl || invoice?.qrLink;
+  if (typeof rawUrl === 'string' && rawUrl.length > 4) return rawUrl;
+  const invoiceNumber = invoice?.invoiceNumber;
+  if (!invoiceNumber) return null;
+  const issuer = (invoice?.issuer || '').toLowerCase();
+  const pathname = issuer === 'mushahid' ? '/verifyqrcodefrontendmushahid' : issuer === 'mustak' ? '/verifyqrcodefrontendmustak' : '/verifyqrcodefrontendmushahid';
+  const url = new URL(pathname, DEFAULT_PUBLIC_BASE_URL.startsWith('http') ? DEFAULT_PUBLIC_BASE_URL : `https://${DEFAULT_PUBLIC_BASE_URL}`);
+  url.searchParams.set('invoiceNumber', invoiceNumber);
+  if (invoice?.documentType) url.searchParams.set('type', invoice.documentType);
+  url.searchParams.set('issuer', issuer || 'mushahid');
+  return url.toString();
 }
 
 function buildPaymentLinks(invoice: any): { primary: string; deepLink?: string } | null {
-    const direct = invoice?.paymentLink || invoice?.paymentUrl || invoice?.paymentPage || invoice?.phonePeLink || invoice?.gpayLink || invoice?.paytmLink;
-    if (typeof direct === 'string' && direct.length > 4) return { primary: direct };
-    const upiIdRaw = invoice?.upiId || invoice?.upi || '9979131416@ybl';
-    const upiId = upiIdRaw.replace(/\s+/g, '');
-    const payeeName = invoice?.upiName || invoice?.clientName || 'MUSTAK KHAN';
-    const amount = invoice?.totalAmountAfterTax || invoice?.totalAmount;
-    const upiParams = new URLSearchParams({ pa: upiId, pn: payeeName, cu: 'INR', mode: '02' });
-    if (amount) upiParams.set('am', String(amount));
-    const httpsLink = `https://upi.me/pay?${upiParams.toString()}`;
-    const deepLink = `upi://pay?${upiParams.toString()}`;
-    return { primary: httpsLink, deepLink };
+  const direct = invoice?.paymentLink || invoice?.paymentUrl || invoice?.paymentPage || invoice?.phonePeLink || invoice?.gpayLink || invoice?.paytmLink;
+  if (typeof direct === 'string' && direct.length > 4) return { primary: direct };
+  const upiIdRaw = invoice?.upiId || invoice?.upi || '9979131416@ybl';
+  const upiId = upiIdRaw.replace(/\s+/g, '');
+  const payeeName = invoice?.upiName || invoice?.clientName || 'MUSTAK KHAN';
+  const amount = invoice?.totalAmountAfterTax || invoice?.totalAmount;
+  const upiParams = new URLSearchParams({ pa: upiId, pn: payeeName, cu: 'INR', mode: '02' });
+  if (amount) upiParams.set('am', String(amount));
+  const httpsLink = `https://upi.me/pay?${upiParams.toString()}`;
+  const deepLink = `upi://pay?${upiParams.toString()}`;
+  return { primary: httpsLink, deepLink };
 }
 
 function buildInvoiceHtml(invoice: any) {
-    const qrDataUri = getQrDataUri(invoice.qrCode ?? invoice.qr);
-    const phonePeQr = loadLocalImageAsDataURI('phonepe-qr.jpg');
-    const verificationUrl = buildVerificationUrl(invoice);
-    const paymentLinks = buildPaymentLinks(invoice);
-    const itemsCount = (invoice.items || []).length;
-    const densityClass = itemsCount > 34 ? 'density-ultra' : itemsCount > 24 ? 'density-compact' : 'density-regular';
+  const qrDataUri = getQrDataUri(invoice.qrCode ?? invoice.qr);
+  const phonePeQr = loadLocalImageAsDataURI('phonepe-qr.jpg');
+  const verificationUrl = buildVerificationUrl(invoice);
+  const paymentLinks = buildPaymentLinks(invoice);
+  const itemsCount = (invoice.items || []).length;
+  const densityClass = itemsCount > 34 ? 'density-ultra' : itemsCount > 24 ? 'density-compact' : 'density-regular';
 
-    const itemsRows = (invoice.items || []).map((item: any) => `
+  const itemsRows = (invoice.items || []).map((item: any) => `
       <tr>
         <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.no ?? ''}</td>
         <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.description ?? ''}</td>
@@ -127,38 +127,38 @@ function buildInvoiceHtml(invoice: any) {
         <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;font-weight:600;">₹${(parseFloat(item.totalAmount || 0)).toFixed(2)}</td>
       </tr>`).join('');
 
-    const qrImage = qrDataUri
-        ? `<img alt="Invoice QR" src="${qrDataUri}" style="width:88px;height:88px;display:block;margin:0 auto;" decoding="async" />`
-        : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
+  const qrImage = qrDataUri
+    ? `<img alt="Invoice QR" src="${qrDataUri}" style="width:88px;height:88px;display:block;margin:0 auto;" decoding="async" />`
+    : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
 
-    const qrHtml = verificationUrl
-        ? `<a href="${verificationUrl}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;color:inherit;display:block;">
+  const qrHtml = verificationUrl
+    ? `<a href="${verificationUrl}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;color:inherit;display:block;">
         ${qrImage}
         <div style="font-size:9px;text-align:center;color:#0f172a;margin-top:2px;">Scan or tap to verify</div>
       </a>`
-        : qrImage;
+    : qrImage;
 
-    const paymentHref = paymentLinks?.primary || '#';
-    const phonePeHtml = phonePeQr
-        ? `<a href="${paymentHref}" ${paymentLinks ? 'target="_blank" rel="noopener noreferrer"' : ''} ${paymentLinks?.deepLink ? `data-upi-link="${paymentLinks.deepLink}"` : ''} style="display:block;text-decoration:none;color:inherit;">
+  const paymentHref = paymentLinks?.primary || '#';
+  const phonePeHtml = phonePeQr
+    ? `<a href="${paymentHref}" ${paymentLinks ? 'target="_blank" rel="noopener noreferrer"' : ''} ${paymentLinks?.deepLink ? `data-upi-link="${paymentLinks.deepLink}"` : ''} style="display:block;text-decoration:none;color:inherit;">
         <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
         <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
       </a>`
-        : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
+    : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
 
-    const termsContent = `
+  const termsContent = `
     <div style="line-height:1.2;">
       1.) SUBJECT TO AHMEDABAD JURISDICTION.<br/>
       2.) ANY TAXES APPLICABLE WILL BE BORNE BY THE CUSTOMER.<br/>
       3.) PLEASE PAY BY CASH / CROSSED CHEQUE / DEMAND DRAFT / UPI / NETBANKING ONLY.<br/>
       4.) PLEASE MAKE CHEQUE PAYMENTS PAYABLE TO THE APPROPRIATE BENEFICIARY AS ADVISED.
     </div>`;
+  
+  const amountWordsHtml = invoice.amountInWords ? `<div style="margin-top:4px;font-weight:800;font-size:10.5px;color:#0b1220;">Amount in Words: ${invoice.amountInWords}</div>` : '';
+  const notesHtml = invoice.notes ? `<div style="margin-top:3px;"><strong>Notes:</strong> ${invoice.notes}</div>` : '';
+  const certHtml = `<div style="margin-top:3px;">Certified that the particulars given above are true &amp; correct. For <strong>MUSTAK KHAN</strong>.</div>`;
 
-    const amountWordsHtml = invoice.amountInWords ? `<div style="margin-top:4px;font-weight:800;font-size:10.5px;color:#0b1220;">Amount in Words: ${invoice.amountInWords}</div>` : '';
-    const notesHtml = invoice.notes ? `<div style="margin-top:3px;"><strong>Notes:</strong> ${invoice.notes}</div>` : '';
-    const certHtml = `<div style="margin-top:3px;">Certified that the particulars given above are true &amp; correct. For <strong>MUSTAK KHAN</strong>.</div>`;
-
-    return `<!doctype html>
+  return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -282,11 +282,11 @@ function buildInvoiceHtml(invoice: any) {
   <div class="container">
     <div class="header">
       <div class="company">
-        <h1>MUSHAHID KHAN</h1>
+        <h1>MUSTAK KHAN</h1>
         <div class="muted" style="font-weight:500; color:#334155;">(An expert in ceiling design)</div>
         <div class="muted">C-1/207 Marjan Residency Nr. Alkuba Canal Road, Vatva, Ahmedabad - 382440, Gujarat</div>
         <div style="margin-top:4px;font-size:11px;">
-          <strong>Mob:</strong> 9023199465 &nbsp;&nbsp;<strong>Email:</strong> mujamahe@gmail.com
+          <strong>Mob:</strong> 9979174216 &nbsp;&nbsp;<strong>Email:</strong> mustakkhan.mk550@gmail.com
         </div>
         <div style="margin-top:2px;font-size:11px;"><strong>GSTIN:</strong> 24BEQPK9997B1ZW</div>
       </div>
@@ -304,10 +304,10 @@ function buildInvoiceHtml(invoice: any) {
       <div class="box">
         <h4>Company Details</h4>
         <div style="font-size:10.5px;color:#0b1220;line-height:1.25;">
-          <strong>Name:</strong> MUSHAHID KHAN<br/>
+          <strong>Name:</strong> MUSTAK KHAN<br/>
           <strong>Address:</strong> C-1/207 Marjan Residency Nr. Alkuba Canal Road, Vatva, Ahmedabad - 382440, Gujarat<br/>
-          <strong>Mobile:</strong> 9023199465<br/>
-          <strong>Email:</strong> mujamahe@gmail.com<br/>
+          <strong>Mobile:</strong> 9979174216<br/>
+          <strong>Email:</strong> mustakkhan.mk550@gmail.com<br/>
           <strong>GSTIN:</strong> 24BEQPK9997B1ZW
         </div>
       </div>
@@ -342,11 +342,10 @@ function buildInvoiceHtml(invoice: any) {
     <div class="bottom-split">
       <div class="bottom-left">
         <div style="font-size:11px;font-weight:700;color:#0b1220;text-transform:uppercase;margin-bottom:2px;">Bank Details</div>
-      <div style="font-size:10.5px;color:#374151;line-height:1.25;">
-  Bank Name: SBI BANK-LAMBHA<br/>
-  A/C: 42005260280 &nbsp;|&nbsp; IFSC: SBIN0016026 &nbsp;|&nbsp; PAN No: GDYPM4112E
-</div>
-
+        <div style="font-size:10.5px;color:#374151;line-height:1.25;">
+          Bank Name: SBI BANK-SHAHALAM GATE<br/>
+          A/C: 30391756262 &nbsp;|&nbsp; IFSC: SBIN0003046 &nbsp;|&nbsp; PAN No: BEQPK9997B
+        </div>
         ${amountWordsHtml}
         <div style="margin-top:4px;font-size:9.5px;color:#374151;text-transform:uppercase;">
           <strong>Terms &amp; Conditions:</strong>${termsContent}
@@ -381,84 +380,84 @@ function buildInvoiceHtml(invoice: any) {
 }
 
 async function waitForImagesLoad(page: Page, timeoutMs = 6000) {
-    await page.evaluate((timeout: number) => new Promise<void>((resolve) => {
+  await page.evaluate((timeout: number) => new Promise<void>((resolve) => {
         const imgs = Array.from(document.images || []);
         if (!imgs.length) return resolve();
         let settled = 0;
         const done = () => { settled++; if (settled >= imgs.length) resolve(); };
         imgs.forEach((img) => {
-            if ((img as HTMLImageElement).complete) return done();
-            const onDone = () => {
-                (img as HTMLImageElement).removeEventListener('load', onDone);
-                (img as HTMLImageElement).removeEventListener('error', onDone);
-                done();
-            };
-            (img as HTMLImageElement).addEventListener('load', onDone);
-            (img as HTMLImageElement).addEventListener('error', onDone);
+          if ((img as HTMLImageElement).complete) return done();
+          const onDone = () => {
+            (img as HTMLImageElement).removeEventListener('load', onDone);
+            (img as HTMLImageElement).removeEventListener('error', onDone);
+            done();
+          };
+          (img as HTMLImageElement).addEventListener('load', onDone);
+          (img as HTMLImageElement).addEventListener('error', onDone);
         });
         setTimeout(() => resolve(), timeout);
-    }), timeoutMs);
+      }), timeoutMs);
 }
 
 export async function GET(_req: NextRequest) {
-    try {
-        await client.connect();
-        const db = client.db(DB_NAME);
-        const collection = db.collection(COLLECTION_NAME);
-        const latest = await collection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
-        if (!latest.length) return NextResponse.json({ message: 'No invoices found.' }, { status: 404 });
-        const invoice = latest[0];
-        const html = buildInvoiceHtml(invoice);
+  try {
+    await client.connect();
+    const db = client.db(DB_NAME);
+    const collection = db.collection(COLLECTION_NAME);
+    const latest = await collection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
+    if (!latest.length) return NextResponse.json({ message: 'No invoices found.' }, { status: 404 });
+    const invoice = latest[0];
+    const html = buildInvoiceHtml(invoice);
 
-        const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-        // Setup standard A4 metrics
-        const cssPixelsPerInch = 96;
-        // Note: Puppeteer margin logic often subtracts from these dimensions, 
-        // so strict A4 pixel counts + margins = valid page.
-        const a4WidthPx = 794;
-        const a4HeightPx = 1123;
+    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    // Setup standard A4 metrics
+    const cssPixelsPerInch = 96;
+    // Note: Puppeteer margin logic often subtracts from these dimensions, 
+    // so strict A4 pixel counts + margins = valid page.
+    const a4WidthPx = 794; 
+    const a4HeightPx = 1123; 
+    
+    const page = await browser.newPage();
+    await page.setViewport({ width: a4WidthPx, height: a4HeightPx });
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await waitForImagesLoad(page, 6000);
 
-        const page = await browser.newPage();
-        await page.setViewport({ width: a4WidthPx, height: a4HeightPx });
-        await page.setContent(html, { waitUntil: 'networkidle0' });
-        await waitForImagesLoad(page, 6000);
+    const measureContentHeight = async () => page.evaluate(() => {
+        const el = document.documentElement || document.body;
+        return Math.max(el.scrollHeight, el.offsetHeight, el.clientHeight);
+      });
 
-        const measureContentHeight = async () => page.evaluate(() => {
-            const el = document.documentElement || document.body;
-            return Math.max(el.scrollHeight, el.offsetHeight, el.clientHeight);
-        });
+    let contentHeightPx = await measureContentHeight();
+    const verticalMarginsPx = 5 + 5; // Matches the margin options below
+    const availableHeight = a4HeightPx - verticalMarginsPx;
 
-        let contentHeightPx = await measureContentHeight();
-        const verticalMarginsPx = 5 + 5; // Matches the margin options below
-        const availableHeight = a4HeightPx - verticalMarginsPx;
-
-        const extraDensityClasses = ['density-tight', 'density-micro'];
-        if (contentHeightPx > availableHeight) {
-            for (const density of extraDensityClasses) {
-                await page.evaluate((densityClass) => { if (!document.body.classList.contains(densityClass)) document.body.classList.add(densityClass); }, density);
-                await waitForImagesLoad(page, 500);
-                contentHeightPx = await measureContentHeight();
-                if (contentHeightPx <= availableHeight) break;
-            }
-        }
-
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            // AGGRESSIVE 5px MARGINS
-            margin: { top: '5px', right: '10px', bottom: '5px', left: '10px' },
-            scale: 1,
-        });
-
-        await browser.close();
-        const fileName = `tax-invoice-${invoice.invoiceNumber || 'invoice'}.pdf`;
-        const pdfArrayBuffer = pdfBuffer.buffer.slice(pdfBuffer.byteOffset, pdfBuffer.byteOffset + pdfBuffer.byteLength) as ArrayBuffer;
-        const pdfBlob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
-        return new NextResponse(pdfBlob, { status: 200, headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${fileName}"`, 'Cache-Control': 'no-store' } });
-    } catch (error: any) {
-        console.error('Error generating PDF:', error);
-        return NextResponse.json({ message: `Failed to generate PDF: ${error?.message ?? 'Unknown error'}` }, { status: 500 });
-    } finally {
-        await client.close().catch(() => { });
+    const extraDensityClasses = ['density-tight', 'density-micro'];
+    if (contentHeightPx > availableHeight) {
+      for (const density of extraDensityClasses) {
+        await page.evaluate((densityClass) => { if (!document.body.classList.contains(densityClass)) document.body.classList.add(densityClass); }, density);
+        await waitForImagesLoad(page, 500);
+        contentHeightPx = await measureContentHeight();
+        if (contentHeightPx <= availableHeight) break;
+      }
     }
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      // AGGRESSIVE 5px MARGINS
+      margin: { top: '5px', right: '10px', bottom: '5px', left: '10px' },
+      scale: 1,
+    });
+
+    await browser.close();
+    const fileName = `tax-invoice-${invoice.invoiceNumber || 'invoice'}.pdf`;
+    const pdfArrayBuffer = pdfBuffer.buffer.slice(pdfBuffer.byteOffset, pdfBuffer.byteOffset + pdfBuffer.byteLength) as ArrayBuffer;
+    const pdfBlob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+    return new NextResponse(pdfBlob, { status: 200, headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${fileName}"`, 'Cache-Control': 'no-store' } });
+  } catch (error: any) {
+    console.error('Error generating PDF:', error);
+    return NextResponse.json({ message: `Failed to generate PDF: ${error?.message ?? 'Unknown error'}` }, { status: 500 });
+  } finally {
+    await client.close().catch(() => {});
+  }
 }
