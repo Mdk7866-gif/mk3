@@ -117,14 +117,14 @@ function buildInvoiceHtml(invoice: any) {
 
   const itemsRows = (invoice.items || []).map((item: any) => `
       <tr>
-        <td style="padding:7px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.no ?? ''}</td>
-        <td style="padding:7px;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.description ?? ''}</td>
-        <td style="padding:7px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.hsn || '-'}</td>
-        <td style="padding:7px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.quantity ?? ''}</td>
-        <td style="padding:7px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(parseFloat(item.rate || 0)).toFixed(2)}</td>
-        <td style="padding:7px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(parseFloat(item.taxableAmount || 0)).toFixed(2)}</td>
-        <td style="padding:7px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.gst ?? ''}%</td>
-        <td style="padding:7px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;font-weight:600;">₹${(parseFloat(item.totalAmount || 0)).toFixed(2)}</td>
+        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.no ?? ''}</td>
+        <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.description ?? ''}</td>
+        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.hsn || '-'}</td>
+        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.quantity ?? ''}</td>
+        <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(parseFloat(item.rate || 0)).toFixed(2)}</td>
+        <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(parseFloat(item.taxableAmount || 0)).toFixed(2)}</td>
+        <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.gst ?? ''}%</td>
+        <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;font-weight:600;">₹${(parseFloat(item.totalAmount || 0)).toFixed(2)}</td>
       </tr>`).join('');
 
   const qrImage = qrDataUri
@@ -147,16 +147,16 @@ function buildInvoiceHtml(invoice: any) {
     : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
 
   const termsContent = `
-    <div style="line-height:1.25;">
+    <div style="line-height:1.2;">
       1.) SUBJECT TO AHMEDABAD JURISDICTION.<br/>
       2.) ANY TAXES APPLICABLE WILL BE BORNE BY THE CUSTOMER.<br/>
       3.) PLEASE PAY BY CASH / CROSSED CHEQUE / DEMAND DRAFT / UPI / NETBANKING ONLY.<br/>
       4.) PLEASE MAKE CHEQUE PAYMENTS PAYABLE TO THE APPROPRIATE BENEFICIARY AS ADVISED.
     </div>`;
   
-  const amountWordsHtml = invoice.amountInWords ? `<div style="margin-top:6px;font-weight:800;font-size:11px;color:#0b1220;">Amount in Words: ${invoice.amountInWords}</div>` : '';
-  const notesHtml = invoice.notes ? `<div style="margin-top:4px;"><strong>Notes:</strong> ${invoice.notes}</div>` : '';
-  const certHtml = `<div style="margin-top:4px;">Certified that the particulars given above are true &amp; correct. For <strong>MUSTAK KHAN</strong>.</div>`;
+  const amountWordsHtml = invoice.amountInWords ? `<div style="margin-top:4px;font-weight:800;font-size:10.5px;color:#0b1220;">Amount in Words: ${invoice.amountInWords}</div>` : '';
+  const notesHtml = invoice.notes ? `<div style="margin-top:3px;"><strong>Notes:</strong> ${invoice.notes}</div>` : '';
+  const certHtml = `<div style="margin-top:3px;">Certified that the particulars given above are true &amp; correct. For <strong>MUSTAK KHAN</strong>.</div>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -165,21 +165,19 @@ function buildInvoiceHtml(invoice: any) {
   <title>Tax Invoice ${invoice.invoiceNumber ?? ''}</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    @page { size: A4; margin: 10px; }
+    @page { size: A4; margin: 5px; } /* AGGRESSIVE MARGINS FOR VERTICAL SPACE */
     html, body { height:100%; margin: 0; padding: 0; }
     * { box-sizing: border-box; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
 
     body {
       font-family: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       color: #0f172a;
-      /* Reduced base font size slightly to save vertical space */
-      font-size: 12px;
+      font-size: 11.5px; /* Slightly reduced base font */
       background: #fff;
     }
 
-    /* FIXED: Constrained container to prevent right-side clipping */
     .container {
-      max-width: 750px; /* Safe width for A4 */
+      max-width: 750px;
       margin: 0 auto;
       padding: 0 5px;
       background: #fff;
@@ -191,19 +189,18 @@ function buildInvoiceHtml(invoice: any) {
       align-items:flex-start;
       gap:12px;
       border-bottom:1px solid #eef2f7;
-      padding-bottom:8px; /* Reduced */
-      margin-bottom:10px;
-      padding-top: 10px; /* Adds space for Top QR */
+      padding-bottom:6px; /* Reduced padding */
+      margin-bottom:8px;  /* Reduced margin */
+      padding-top: 8px;
     }
 
     .company h1 { font-size:20px; margin:0 0 4px 0; letter-spacing:0.5px; color:#0b1220; font-weight: 800; }
     .muted { color:#475569; font-size:11px; margin-top:2px; }
 
     .qr-holder {
-      width:90px;
-      height:90px;
+      width:86px; /* Slightly smaller */
+      height:86px;
       border-radius:4px;
-      /* border:1px solid #e6eef6; */
       display:flex;
       align-items:center;
       justify-content:center;
@@ -214,33 +211,33 @@ function buildInvoiceHtml(invoice: any) {
     .title {
       text-align:center;
       font-weight:700;
-      font-size:16px;
+      font-size:15px;
       letter-spacing:1px;
-      margin: 4px 0 10px;
-      padding:6px 0;
+      margin: 4px 0 8px; /* Reduced margins */
+      padding:5px 0;
       background:#f1f5f9;
       color:#0b3d91;
       border-radius:4px;
       text-transform: uppercase;
     }
 
-    .meta { display:flex; justify-content:space-between; gap:12px; margin-bottom:10px; border-bottom: 1px dotted #e6eef6; padding-bottom: 6px; }
+    .meta { display:flex; justify-content:space-between; gap:12px; margin-bottom:8px; border-bottom: 1px dotted #e6eef6; padding-bottom: 6px; }
     
-    .section { display:flex; gap:12px; margin-bottom:10px; }
+    .section { display:flex; gap:12px; margin-bottom:8px; }
     .box { flex:1; padding:8px; border-radius:4px; background:#f8fafc; border:1px solid #eef2f9; }
-    .box h4 { margin:0 0 4px 0; font-size:11.5px; color:#0b1220; text-transform: uppercase; }
+    .box h4 { margin:0 0 3px 0; font-size:11.5px; color:#0b1220; text-transform: uppercase; }
 
-    table.items { width:100%; border-collapse: collapse; margin-bottom:10px; font-size:11px; }
+    table.items { width:100%; border-collapse: collapse; margin-bottom:8px; font-size:11px; }
     table.items thead th {
       text-align:center;
-      padding:8px 4px;
+      padding:6px 4px; /* Reduced padding */
       background:#eef2f7; 
       font-weight:700;
       border-bottom: 2px solid #e2e8f0;
       color:#0b1220;
     }
     table.items th:nth-child(2) { text-align:left; }
-    table.items td { padding:7px 4px; vertical-align:middle; color:#0f172a; border-bottom:1px solid #f1f5f9; }
+    table.items td { padding:5px 4px; vertical-align:middle; color:#0f172a; border-bottom:1px solid #f1f5f9; }
     table.items td.right { text-align:right; }
 
     table, thead, tbody, tr, td, th { page-break-inside: avoid; }
@@ -249,7 +246,7 @@ function buildInvoiceHtml(invoice: any) {
     .bottom-left { flex: 1; }
     
     .totals { width:320px; margin-left:auto; border:1px solid #eef2f7; border-radius:4px; overflow:hidden; }
-    .totals .row { display:flex; justify-content:space-between; padding:8px 10px; border-bottom:1px solid #f1f5f9; font-size:11px; background:#fff; color:#0b1220; }
+    .totals .row { display:flex; justify-content:space-between; padding:6px 10px; border-bottom:1px solid #f1f5f9; font-size:11px; background:#fff; color:#0b1220; }
     .totals .row.total { font-weight:800; background:#f1f5f9; border-bottom: none; }
 
     .sign-block { 
@@ -257,8 +254,8 @@ function buildInvoiceHtml(invoice: any) {
       justify-content:space-between; 
       gap:20px; 
       align-items:flex-end; 
-      margin-top: 6px; 
-      padding-top: 8px; 
+      margin-top: 0px; /* REMOVED TOP MARGIN */
+      padding-top: 4px; 
       border-top: 1px solid #f1f5f9;
     }
     .signature-line { border-top:1.5px solid #0b1220; width:160px; padding-top:4px; font-weight:700; font-size:10.5px; text-align:center; margin-bottom: 2px;}
@@ -266,15 +263,17 @@ function buildInvoiceHtml(invoice: any) {
     .phonepe-box { width:105px; border:1px solid #eef2f7; border-radius:6px; padding:4px; text-align:center; background:#fff; }
     .phonepe-box h5 { margin:0 0 3px 0; font-size:10.5px; color:#0b1220; font-weight: 700; }
 
-    /* DENSITY SCALING */
-    .density-compact table.items td, .density-compact table.items th { padding:5px 4px; font-size:10.5px; }
-    .density-compact .box { padding:6px; }
-    .density-compact .totals .row { padding:6px 8px; font-size:10.5px; }
+    /* DENSITY SCALING - AGGRESSIVE */
+    .density-compact table.items td, .density-compact table.items th { padding:4px 3px; font-size:10px; }
+    .density-compact .box { padding:5px; }
+    .density-compact .totals .row { padding:5px 8px; font-size:10px; }
     
-    .density-ultra table.items td, .density-ultra table.items th { padding:3px 2px; font-size:9.5px; }
-    .density-ultra .box { padding:5px; }
-    .density-ultra body, .density-ultra .container { font-size:10.5px; }
-    .density-ultra .totals .row { padding:5px 6px; font-size:9.5px; }
+    .density-ultra table.items td, .density-ultra table.items th { padding:2px 2px; font-size:9.5px; }
+    .density-ultra .box { padding:4px; }
+    .density-ultra body, .density-ultra .container { font-size:10px; }
+    .density-ultra .totals .row { padding:4px 5px; font-size:9.5px; }
+    .density-ultra .sign-block { margin-top: 0; padding-top: 2px; }
+    .density-ultra .signature-line { padding-top: 2px; }
 
     @media print { .container { margin:0 auto; border:none; padding:0 5px; } }
   </style>
@@ -286,10 +285,10 @@ function buildInvoiceHtml(invoice: any) {
         <h1>MUSTAK KHAN</h1>
         <div class="muted" style="font-weight:500; color:#334155;">(An expert in ceiling design)</div>
         <div class="muted">C.207 Marjan Residency No. Alpola Conael, Road Vatva, Ahmedabad - 382440</div>
-        <div style="margin-top:6px;font-size:11px;">
+        <div style="margin-top:4px;font-size:11px;">
           <strong>Mob:</strong> 9979131416 &nbsp;&nbsp;<strong>Email:</strong> mustakbhaimrik510@gmail.com
         </div>
-        <div style="margin-top:4px;font-size:11px;"><strong>GSTIN:</strong> 24BEGPK9997B4Z-W</div>
+        <div style="margin-top:2px;font-size:11px;"><strong>GSTIN:</strong> 24BEGPK9997B4Z-W</div>
       </div>
       <div class="qr-holder" title="Invoice QR">${qrHtml}</div>
     </div>
@@ -304,7 +303,7 @@ function buildInvoiceHtml(invoice: any) {
     <div class="section">
       <div class="box">
         <h4>Company Details</h4>
-        <div style="font-size:10.5px;color:#0b1220;line-height:1.3;">
+        <div style="font-size:10.5px;color:#0b1220;line-height:1.25;">
           <strong>Name:</strong> MUSTAK KHAN<br/>
           <strong>Address:</strong> C.207 Marjan Residency No. Alpola Conael Road Vatva Ahmedabad - 382440, Gujarat<br/>
           <strong>Mobile:</strong> 9979131416<br/>
@@ -314,7 +313,7 @@ function buildInvoiceHtml(invoice: any) {
       </div>
       <div class="box">
         <h4>Bill To</h4>
-        <div style="font-size:10.5px;color:#0b1220;line-height:1.3;">
+        <div style="font-size:10.5px;color:#0b1220;line-height:1.25;">
           <strong>Name:</strong> ${invoice.clientName ?? 'N/A'}<br/>
           <strong>Address:</strong> ${invoice.clientAddress ?? 'N/A'}<br/>
           ${invoice.mobile ? `<strong>Mobile:</strong> ${invoice.mobile}<br/>` : ''}
@@ -342,16 +341,16 @@ function buildInvoiceHtml(invoice: any) {
 
     <div class="bottom-split">
       <div class="bottom-left">
-        <div style="font-size:11px;font-weight:700;color:#0b1220;text-transform:uppercase;margin-bottom:4px;">Bank Details</div>
-        <div style="font-size:10.5px;color:#374151;line-height:1.3;">
+        <div style="font-size:11px;font-weight:700;color:#0b1220;text-transform:uppercase;margin-bottom:2px;">Bank Details</div>
+        <div style="font-size:10.5px;color:#374151;line-height:1.25;">
           Bank Name: SBI BANK - Shahjalam Gate<br/>
           A/C: 30231750262 &nbsp;|&nbsp; IFSC: SBIN0003046
         </div>
         ${amountWordsHtml}
-        <div style="margin-top:6px;font-size:10px;color:#374151;text-transform:uppercase;">
+        <div style="margin-top:4px;font-size:9.5px;color:#374151;text-transform:uppercase;">
           <strong>Terms &amp; Conditions:</strong>${termsContent}
         </div>
-        <div style="font-size:10px;color:#475569;margin-top:4px;">${notesHtml}${certHtml}</div>
+        <div style="font-size:9.5px;color:#475569;margin-top:3px;">${notesHtml}${certHtml}</div>
       </div>
       <div class="totals" role="note" aria-label="Tax Summary">
         <div class="row"><div>Total Amount Before Tax</div><div>₹${(parseFloat(invoice.totalAmountBeforeTax || 0)).toFixed(2)}</div></div>
@@ -365,16 +364,16 @@ function buildInvoiceHtml(invoice: any) {
 
     <div class="sign-block">
       <div style="text-align:center;">
-        <div style="height: 20px;"></div> <div class="signature-line">Customer Signature</div>
+        <div style="height: 10px;"></div> <div class="signature-line">Customer Signature</div>
       </div>
       <div style="text-align:center;">
-        <div style="height: 20px;"></div> <div class="signature-line">Authorised Signatory</div>
+        <div style="height: 10px;"></div> <div class="signature-line">Authorised Signatory</div>
       </div>
       <div class="phonepe-box" title="Pay via PhonePe">
         <h5>Pay via PhonePe</h5>${phonePeHtml}
       </div>
     </div>
-    <div style="text-align:center;margin-top:6px;font-size:9px;color:#94a3b8;">This is a computer generated invoice.</div>
+    <div style="text-align:center;margin-top:4px;font-size:9px;color:#94a3b8;">This is a computer generated invoice.</div>
   </div>
 </body>
 </html>`;
@@ -413,12 +412,13 @@ export async function GET(_req: NextRequest) {
     const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     // Setup standard A4 metrics
     const cssPixelsPerInch = 96;
-    const a4WidthPx = 8.27 * cssPixelsPerInch; // ~794px
-    const a4HeightPx = 11.69 * cssPixelsPerInch; // ~1123px
+    // Note: Puppeteer margin logic often subtracts from these dimensions, 
+    // so strict A4 pixel counts + margins = valid page.
+    const a4WidthPx = 794; 
+    const a4HeightPx = 1123; 
     
     const page = await browser.newPage();
-    // Viewport matches A4 width roughly
-    await page.setViewport({ width: 794, height: 1123 });
+    await page.setViewport({ width: a4WidthPx, height: a4HeightPx });
     await page.setContent(html, { waitUntil: 'networkidle0' });
     await waitForImagesLoad(page, 6000);
 
@@ -428,7 +428,7 @@ export async function GET(_req: NextRequest) {
       });
 
     let contentHeightPx = await measureContentHeight();
-    const verticalMarginsPx = 10 + 10; 
+    const verticalMarginsPx = 5 + 5; // Matches the margin options below
     const availableHeight = a4HeightPx - verticalMarginsPx;
 
     const extraDensityClasses = ['density-tight', 'density-micro'];
@@ -444,8 +444,8 @@ export async function GET(_req: NextRequest) {
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      // Back to tighter margins to fit more content
-      margin: { top: '10px', right: '10px', bottom: '10px', left: '10px' },
+      // AGGRESSIVE 5px MARGINS
+      margin: { top: '5px', right: '10px', bottom: '5px', left: '10px' },
       scale: 1,
     });
 
