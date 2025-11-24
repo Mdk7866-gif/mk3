@@ -217,6 +217,7 @@ function buildPaymentLinks(
   invoice: Invoice,
   amountOverride?: number,
 ): { primary: string; deepLink?: string } | null {
+  // If there is an explicit payment link on the invoice, prefer that
   const direct =
     (typeof invoice.paymentLink === 'string' && invoice.paymentLink) ||
     (typeof invoice.paymentUrl === 'string' && invoice.paymentUrl) ||
@@ -230,17 +231,12 @@ function buildPaymentLinks(
     return { primary: direct };
   }
 
-  const upiIdRaw =
-    (typeof invoice.upiId === 'string' && invoice.upiId) ||
-    (typeof invoice.upi === 'string' && invoice.upi) ||
-    '9979131416@ybl';
+  // ✅ Your fixed UPI details
+  const upiId = '9979174216@ybl';
+  const payeeName = 'Mustak Ishamohmmed Khan';
+  const note = 'thank you for yourpayment';
 
-  const upiId = upiIdRaw.replace(/\s+/g, '');
-  const payeeName =
-    (typeof invoice.upiName === 'string' && invoice.upiName) ||
-    (typeof invoice.clientName === 'string' && invoice.clientName) ||
-    'MUSHAHID KHAN';
-
+  // Fallback amount: sum of items if needed
   const fallbackItemsTotal =
     Array.isArray(invoice.items) && invoice.items.length
       ? invoice.items.reduce((sum: number, it: InvoiceItem) => {
@@ -256,21 +252,34 @@ function buildPaymentLinks(
     invoice.totalAmount ??
     fallbackItemsTotal;
 
+  // Build common UPI params
   const upiParams = new URLSearchParams({
     pa: upiId,
     pn: payeeName,
     cu: 'INR',
-    mode: '02',
+    tn: note,
   });
 
   if (amountRaw !== undefined && amountRaw !== null && amountRaw !== '') {
     upiParams.set('am', String(amountRaw));
   }
 
-  const httpsLink = `https://upi.me/pay?${upiParams.toString()}`;
+  // UPI deep link (what the /upi-pay page will open)
   const deepLink = `upi://pay?${upiParams.toString()}`;
 
-  return { primary: httpsLink, deepLink };
+  // HTTPS link → /upi-pay?pa=...&pn=...&am=...&tn=...&cu=INR
+  const base =
+    DEFAULT_PUBLIC_BASE_URL.startsWith('http')
+      ? DEFAULT_PUBLIC_BASE_URL
+      : `https://${DEFAULT_PUBLIC_BASE_URL}`;
+
+  const redirectUrl = new URL('/upi-pay', base);
+  redirectUrl.search = upiParams.toString();
+
+  return {
+    primary: redirectUrl.toString(), // 🔹 this is used in the PDF <a href="">
+    deepLink,
+  };
 }
 
 function buildInvoiceHtml(invoice: Invoice): string {
@@ -328,16 +337,15 @@ function buildInvoiceHtml(invoice: Invoice): string {
       </a>`
     : qrImage;
 
-  const paymentHref = paymentLinks?.primary || '#';
-  const phonePeHtml = phonePeQr
-    ? `<a href="${paymentHref}" ${
-        paymentLinks ? 'target="_blank" rel="noopener noreferrer"' : ''
-      } ${paymentLinks?.deepLink ? `data-upi-link="${paymentLinks.deepLink}"` : ''} style="display:block;text-decoration:none;color:inherit;">
-        <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
-        <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
-      </a>`
-    : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
+    const paymentHref = paymentLinks?.primary || '#';
 
+    const phonePeHtml = phonePeQr
+      ? `<a href="${paymentHref}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;color:inherit;">
+          <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
+          <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
+        </a>`
+      : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
+  
   const termsContent = `
     <div style="line-height:1.2;">
       1.) SUBJECT TO AHMEDABAD JURISDICTION.<br/>
