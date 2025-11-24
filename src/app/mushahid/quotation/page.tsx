@@ -8,6 +8,7 @@ import ItemsDetailsQuotation, {
 } from "@/components/ItemsDetailsQuotation";
 import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
+import PasswordProtection from "@/components/PasswordProtection";
 
 // Shape expected by /api/mushahidsavequotation
 interface QuotationData {
@@ -27,7 +28,7 @@ interface QuotationData {
   }>;
 }
 
-const CreateQuotationPage: React.FC = () => {
+const CreateQuotationPageContent: React.FC = () => {
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [quotationItems, setQuotationItems] = useState<QuotationItem[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -331,4 +332,10 @@ const CreateQuotationPage: React.FC = () => {
   );
 };
 
-export default CreateQuotationPage;
+export default function CreateQuotationPage() {
+  return (
+    <PasswordProtection>
+      <CreateQuotationPageContent />
+    </PasswordProtection>
+  );
+}

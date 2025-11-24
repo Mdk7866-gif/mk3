@@ -8,6 +8,7 @@ import ClientDetails, { ClientFormData } from "@/components/ClientDetails";
 import ItemsDetailsInvoice, {
   WorkItem,
 } from "@/components/ItemsDetailsInvoice";
+import PasswordProtection from "@/components/PasswordProtection";
 
 // Utility function to convert numbers to words
 const numberToWords = (num: number): string => {
@@ -94,7 +95,7 @@ interface InvoiceData {
   amountInWords: string;
 }
 
-export default function MustakInvoicePage() {
+function MustakInvoicePageContent() {
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [invoiceItems, setInvoiceItems] = useState<WorkItem[]>([]);
   const [totalInvoiceAmount, setTotalInvoiceAmount] = useState<number>(0);
@@ -378,5 +379,13 @@ export default function MustakInvoicePage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function MustakInvoicePage() {
+  return (
+    <PasswordProtection>
+      <MustakInvoicePageContent />
+    </PasswordProtection>
   );
 }

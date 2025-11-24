@@ -1,55 +1,51 @@
 // src/components/Homepagecardstotalearning/MustakTotalEarning.tsx
 
-import clientPromise from '@/lib/mongodb';
+'use client';
 
-type MustakGstDoc = {
-  totalAmountAfterTax: number;
-};
+import { useEffect, useState } from 'react';
 
-type MustakInvoiceDoc = {
-  totalAmount: number;
-};
-
-async function getMustakEarnings(): Promise<{
+interface EarningsData {
   gstTotal: number;
   invoiceTotal: number;
-}> {
-  const client = await clientPromise;
-  const db = client.db('mk3');
-
-  const gstResult = await db
-    .collection<MustakGstDoc>('mustakgst')
-    .aggregate<{ _id: null; total: number }>([
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$totalAmountAfterTax' },
-        },
-      },
-    ])
-    .toArray();
-
-  const invoiceResult = await db
-    .collection<MustakInvoiceDoc>('mustakinvoice')
-    .aggregate<{ _id: null; total: number }>([
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$totalAmount' },
-        },
-      },
-    ])
-    .toArray();
-
-  return {
-    gstTotal: gstResult[0]?.total ?? 0,
-    invoiceTotal: invoiceResult[0]?.total ?? 0,
-  };
 }
 
-const MustakTotalEarning = async () => {
-  const { gstTotal, invoiceTotal } = await getMustakEarnings();
+const MustakTotalEarning = () => {
+  const [earnings, setEarnings] = useState<EarningsData>({
+    gstTotal: 0,
+    invoiceTotal: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchEarnings() {
+      try {
+        const response = await fetch('/api/earnings/mustak');
+        if (response.ok) {
+          const data = await response.json();
+          setEarnings(data);
+        }
+      } catch (error) {
+        console.error('Error fetching Mustak earnings:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchEarnings();
+  }, []);
+
+  const { gstTotal, invoiceTotal } = earnings;
   const combinedTotal = gstTotal + invoiceTotal;
+
+  if (loading) {
+    return (
+      <div className="group relative w-full max-w-md overflow-hidden rounded-2xl bg-white/80 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] ring-1 ring-slate-200 backdrop-blur">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+          <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="group relative w-full max-w-md overflow-hidden rounded-2xl bg-white/80 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] ring-1 ring-slate-200 backdrop-blur transition hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(15,23,42,0.16)] hover:ring-indigo-500/40">

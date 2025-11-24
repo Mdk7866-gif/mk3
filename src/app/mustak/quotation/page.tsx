@@ -8,6 +8,7 @@ import ItemsDetailsQuotation, {
 } from "@/components/ItemsDetailsQuotation";
 import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
+import PasswordProtection from "@/components/PasswordProtection";
 
 // Shape expected by /api/mustaksavequotation
 interface QuotationData {
@@ -27,7 +28,7 @@ interface QuotationData {
   }>;
 }
 
-const CreateMustakQuotationPage: React.FC = () => {
+const CreateMustakQuotationPageContent: React.FC = () => {
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [quotationItems, setQuotationItems] = useState<QuotationItem[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -324,4 +325,10 @@ const CreateMustakQuotationPage: React.FC = () => {
   );
 };
 
-export default CreateMustakQuotationPage;
+export default function CreateMustakQuotationPage() {
+  return (
+    <PasswordProtection>
+      <CreateMustakQuotationPageContent />
+    </PasswordProtection>
+  );
+}

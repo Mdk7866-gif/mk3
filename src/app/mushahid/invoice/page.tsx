@@ -6,6 +6,7 @@ import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
 import ClientDetails, { ClientFormData } from "@/components/ClientDetails";
 import ItemsDetailsInvoice, { WorkItem } from "@/components/ItemsDetailsInvoice";
+import PasswordProtection from "@/components/PasswordProtection";
 
 // Utility function to convert numbers to words
 const numberToWords = (num: number): string => {
@@ -91,7 +92,7 @@ interface InvoiceData {
   amountInWords: string;
 }
 
-export default function MushahidInvoicePage() {
+function MushahidInvoicePageContent() {
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [invoiceItems, setInvoiceItems] = useState<WorkItem[]>([]);
   const [totalInvoiceAmount, setTotalInvoiceAmount] = useState<number>(0);
@@ -388,5 +389,13 @@ export default function MushahidInvoicePage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function MushahidInvoicePage() {
+  return (
+    <PasswordProtection>
+      <MushahidInvoicePageContent />
+    </PasswordProtection>
   );
 }

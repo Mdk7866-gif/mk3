@@ -1,55 +1,51 @@
 // src/components/Homepagecardstotalearning/MushahidTotalEarning.tsx
 
-import clientPromise from '@/lib/mongodb';
+'use client';
 
-type MushahidGstDoc = {
-  totalAmountAfterTax: number;
-};
+import { useEffect, useState } from 'react';
 
-type MushahidInvoiceDoc = {
-  totalAmount: number;
-};
-
-async function getMushahidEarnings(): Promise<{
+interface EarningsData {
   gstTotal: number;
   invoiceTotal: number;
-}> {
-  const client = await clientPromise;
-  const db = client.db('mk3');
-
-  const gstResult = await db
-    .collection<MushahidGstDoc>('mushahidgst')
-    .aggregate<{ _id: null; total: number }>([
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$totalAmountAfterTax' },
-        },
-      },
-    ])
-    .toArray();
-
-  const invoiceResult = await db
-    .collection<MushahidInvoiceDoc>('mushahidinvoice')
-    .aggregate<{ _id: null; total: number }>([
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$totalAmount' },
-        },
-      },
-    ])
-    .toArray();
-
-  return {
-    gstTotal: gstResult[0]?.total ?? 0,
-    invoiceTotal: invoiceResult[0]?.total ?? 0,
-  };
 }
 
-const MushahidTotalEarning = async () => {
-  const { gstTotal, invoiceTotal } = await getMushahidEarnings();
+const MushahidTotalEarning = () => {
+  const [earnings, setEarnings] = useState<EarningsData>({
+    gstTotal: 0,
+    invoiceTotal: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchEarnings() {
+      try {
+        const response = await fetch('/api/earnings/mushahid');
+        if (response.ok) {
+          const data = await response.json();
+          setEarnings(data);
+        }
+      } catch (error) {
+        console.error('Error fetching Mushahid earnings:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchEarnings();
+  }, []);
+
+  const { gstTotal, invoiceTotal } = earnings;
   const combinedTotal = gstTotal + invoiceTotal;
+
+  if (loading) {
+    return (
+      <div className="group relative w-full max-w-md overflow-hidden rounded-2xl bg-white/80 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] ring-1 ring-slate-200 backdrop-blur">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+          <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="group relative w-full max-w-md overflow-hidden rounded-2xl bg-white/80 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] ring-1 ring-slate-200 backdrop-blur transition hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(15,23,42,0.16)] hover:ring-blue-500/40">

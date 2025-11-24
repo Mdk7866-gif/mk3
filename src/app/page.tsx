@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import MushahidTotalEarning from '@/components/Homepagecardstotalearning/MushahidTotalEarning';
 import MustakTotalEarning from '@/components/Homepagecardstotalearning/MustakTotalEarning';
+import PasswordProtectedServer from '@/components/PasswordProtectedServer';
 
-export default function HomePage() {
+function HomePageContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -65,5 +66,13 @@ export default function HomePage() {
       </section>
 
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <PasswordProtectedServer>
+      <HomePageContent />
+    </PasswordProtectedServer>
   );
 }

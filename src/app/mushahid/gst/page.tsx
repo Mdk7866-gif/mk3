@@ -9,6 +9,7 @@ import ItemsDetailsGst, {
 } from "@/components/ItemsDetailsGst";
 import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
+import PasswordProtection from "@/components/PasswordProtection";
 
 // Shape expected by /api/mushahidsavegst
 interface GstInvoiceData {
@@ -37,7 +38,7 @@ interface GstInvoiceData {
   amountInWords: string;
 }
 
-function CreateGstInvoicePage() {
+function CreateGstInvoicePageContent() {
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [gstItems, setGstItems] = useState<GstItem[]>([]);
   const [gstTotals, setGstTotals] = useState<GstInvoiceTotals | null>(null);
@@ -384,4 +385,10 @@ function CreateGstInvoicePage() {
   );
 }
 
-export default CreateGstInvoicePage;
+export default function CreateGstInvoicePage() {
+  return (
+    <PasswordProtection>
+      <CreateGstInvoicePageContent />
+    </PasswordProtection>
+  );
+}
