@@ -11,3 +11,4 @@ export default function PasswordProtectedServer({ children }: PasswordProtectedS
   return <PasswordProtection>{children}</PasswordProtection>;
 }
 
+
