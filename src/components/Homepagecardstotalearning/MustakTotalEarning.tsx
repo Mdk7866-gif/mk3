@@ -1,16 +1,16 @@
-// src/components/Homepagecardstotalearning/MushahidTotalEarning.tsx
+// src/components/Homepagecardstotalearning/MustakTotalEarning.tsx
 
 import clientPromise from '@/lib/mongodb';
 
-type MushahidGstDoc = {
+type MustakGstDoc = {
   totalAmountAfterTax: number;
 };
 
-type MushahidInvoiceDoc = {
+type MustakInvoiceDoc = {
   totalAmount: number;
 };
 
-async function getMushahidEarnings(): Promise<{
+async function getMustakEarnings(): Promise<{
   gstTotal: number;
   invoiceTotal: number;
 }> {
@@ -19,7 +19,7 @@ async function getMushahidEarnings(): Promise<{
 
   // 🧮 Sum of GST invoices -> totalAmountAfterTax
   const gstResult = await db
-    .collection<MushahidGstDoc>('mushahidgst')
+    .collection<MustakGstDoc>('mustakgst')
     .aggregate<{ _id: null; total: number }>([
       {
         $group: {
@@ -34,7 +34,7 @@ async function getMushahidEarnings(): Promise<{
 
   // 🧮 Sum of normal invoices -> totalAmount
   const invoiceResult = await db
-    .collection<MushahidInvoiceDoc>('mushahidinvoice')
+    .collection<MustakInvoiceDoc>('mustakinvoice')
     .aggregate<{ _id: null; total: number }>([
       {
         $group: {
@@ -50,15 +50,15 @@ async function getMushahidEarnings(): Promise<{
   return { gstTotal, invoiceTotal };
 }
 
-// ✅ Server component
-const MushahidTotalEarning = async () => {
-  const { gstTotal, invoiceTotal } = await getMushahidEarnings();
+// ✅ Server Component
+const MustakTotalEarning = async () => {
+  const { gstTotal, invoiceTotal } = await getMustakEarnings();
   const combinedTotal = gstTotal + invoiceTotal;
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm w-full max-w-sm">
       <h3 className="text-sm font-medium text-gray-500">
-        Mushahid Total Earnings
+        Mustak Total Earnings
       </h3>
 
       {/* Combined total */}
@@ -100,4 +100,4 @@ const MushahidTotalEarning = async () => {
   );
 };
 
-export default MushahidTotalEarning;
+export default MustakTotalEarning;

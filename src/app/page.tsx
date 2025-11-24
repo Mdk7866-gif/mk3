@@ -1,6 +1,7 @@
 // src/app/page.tsx
 
 import MushahidTotalEarning from "@/components/Homepagecardstotalearning/MushahidTotalEarning";
+import MustakTotalEarning from "@/components/Homepagecardstotalearning/MustakTotalEarning";
 
 export default function HomePage() {
   return (
@@ -30,17 +31,17 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Cards Section */}
+ {/* Cards Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-4xl font-bold text-gray-800 mb-12 text-center">
             Our Key Clients
           </h2>
 
-          {/* ✅ Add Total Earnings Card */}
-          <div className="flex justify-center">
+          {/* ✅ Now show both cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 justify-items-center">
             <MushahidTotalEarning />
+            <MustakTotalEarning />
           </div>
         </div>
       </section>
