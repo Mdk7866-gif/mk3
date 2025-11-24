@@ -1,50 +1,69 @@
 // src/app/page.tsx
 
-import MushahidTotalEarning from "@/components/Homepagecardstotalearning/MushahidTotalEarning";
-import MustakTotalEarning from "@/components/Homepagecardstotalearning/MustakTotalEarning";
+import Link from 'next/link';
+import MushahidTotalEarning from '@/components/Homepagecardstotalearning/MushahidTotalEarning';
+import MustakTotalEarning from '@/components/Homepagecardstotalearning/MustakTotalEarning';
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-20 px-4 sm:px-6 lg:px-8 text-center shadow-lg">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-extrabold mb-4 animate-fadeInDown">
-            Welcome to MK3 Solutions
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 opacity-90 animate-fadeInUp">
-            Your comprehensive platform for managing invoices, quotations, and GST.
-          </p>
-          <div className="flex justify-center space-x-4">
-            <a
-              href="/mustak/invoice"
-              className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-3 rounded-full text-lg font-semibold transition-all duration-300 shadow-md hover:shadow-lg"
-            >
-              Get Started
-            </a>
-            <a
-              href="/contact"
-              className="border border-white text-white hover:bg-white hover:text-indigo-700 px-8 py-3 rounded-full text-lg font-semibold transition-all duration-300 shadow-md hover:shadow-lg"
-            >
-              Contact Us
-            </a>
-          </div>
-        </div>
-      </section>
- {/* Cards Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-gray-800 mb-12 text-center">
-            Our Key Clients
-          </h2>
+      <section className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+        <div className="mx-auto flex min-h-[280px] max-w-6xl flex-col items-center justify-center px-4 py-16 sm:px-6 md:py-20 lg:px-8">
+          <div className="max-w-3xl text-center">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-blue-100/90">
+              MK3 SOLUTIONS
+            </p>
+            <h1 className="text-4xl font-extrabold leading-tight md:text-5xl lg:text-6xl">
+              Welcome to MK3
+              <span className="block">Solutions</span>
+            </h1>
+            <p className="mt-4 text-base text-blue-100/90 md:text-lg">
+              Your comprehensive platform for managing invoices, quotations,
+              and GST — built to simplify your business operations.
+            </p>
 
-          {/* ✅ Now show both cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 justify-items-center">
-            <MushahidTotalEarning />
-            <MustakTotalEarning />
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <Link
+                href="/mustak/invoice"
+                className="rounded-full bg-white px-8 py-3 text-sm font-semibold text-blue-600 shadow-md shadow-blue-900/20 transition hover:-translate-y-[1px] hover:bg-slate-50 hover:shadow-lg"
+              >
+                Get Started
+              </Link>
+              <Link
+                href="/contact"
+                className="rounded-full border border-white/80 bg-white/0 px-8 py-3 text-sm font-semibold text-white shadow-md shadow-blue-900/10 transition hover:-translate-y-[1px] hover:bg-white hover:text-indigo-700 hover:shadow-lg"
+              >
+                Contact Us
+              </Link>
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Key Clients / Cards Section */}
+      <section className="bg-gray-50 py-14 sm:py-16 lg:py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-500">
+              Dashboard Overview
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              Our Key Clients
+            </h2>
+            <p className="mt-3 max-w-2xl mx-auto text-sm text-slate-500 sm:text-base">
+              Real-time earnings summary for your main clients, combining
+              GST and standard invoices in one clean view.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:gap-8 justify-items-center">
+             <MustakTotalEarning />
+            <MushahidTotalEarning />
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }
