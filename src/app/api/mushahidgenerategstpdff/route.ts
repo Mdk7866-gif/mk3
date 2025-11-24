@@ -201,6 +201,7 @@ function buildVerificationUrl(invoice: Invoice): string | null {
 }
 
 function buildPaymentLinks(invoice: Invoice): { primary: string; deepLink?: string } | null {
+  // If a direct payment link is provided in the invoice, use that first
   const direct =
     (typeof invoice.paymentLink === 'string' && invoice.paymentLink) ||
     (typeof invoice.paymentUrl === 'string' && invoice.paymentUrl) ||
@@ -214,33 +215,43 @@ function buildPaymentLinks(invoice: Invoice): { primary: string; deepLink?: stri
     return { primary: direct };
   }
 
-  const upiIdRaw =
-    (typeof invoice.upiId === 'string' && invoice.upiId) ||
-    (typeof invoice.upi === 'string' && invoice.upi) ||
-    '9979131416@ybl';
-
-  const upiId = upiIdRaw.replace(/\s+/g, '');
-  const payeeName =
-    (typeof invoice.upiName === 'string' && invoice.upiName) ||
-    (typeof invoice.clientName === 'string' && invoice.clientName) ||
-    'MUSHAHID KHAN';
+  // ✅ Your fixed UPI details
+  const upiId = '9979174216@ybl';
+  const payeeName = 'Mustak Ishamohmmed Khan';
+  const note = 'thank you for yourpayment';
 
   const amountRaw = invoice.totalAmountAfterTax ?? invoice.totalAmount;
+
+  // These params will be used for both the deep link and query string
   const upiParams = new URLSearchParams({
     pa: upiId,
     pn: payeeName,
     cu: 'INR',
-    mode: '02',
+    tn: note,
   });
 
   if (amountRaw !== undefined && amountRaw !== null && amountRaw !== '') {
     upiParams.set('am', String(amountRaw));
   }
 
-  const httpsLink = `https://upi.me/pay?${upiParams.toString()}`;
+  // Deep UPI link (this is what the redirect page will launch)
   const deepLink = `upi://pay?${upiParams.toString()}`;
-  return { primary: httpsLink, deepLink };
+
+  // Build an HTTPS URL to your redirect page: https://YOUR_DOMAIN/upi-pay?... 
+  const base =
+    DEFAULT_PUBLIC_BASE_URL.startsWith('http')
+      ? DEFAULT_PUBLIC_BASE_URL
+      : `https://${DEFAULT_PUBLIC_BASE_URL}`;
+
+  const redirectUrl = new URL('/upi-pay', base);
+  redirectUrl.search = upiParams.toString();
+
+  return {
+    primary: redirectUrl.toString(), // 🔹 this goes into the PDF as href
+    deepLink,
+  };
 }
+
 
 function buildInvoiceHtml(invoice: Invoice): string {
   const qrDataUri = getQrDataUri(invoice.qrCode ?? invoice.qr);
@@ -294,15 +305,16 @@ function buildInvoiceHtml(invoice: Invoice): string {
       </a>`
     : qrImage;
 
-  const paymentHref = paymentLinks?.primary || '#';
-  const phonePeHtml = phonePeQr
-    ? `<a href="${paymentHref}" ${
-        paymentLinks ? 'target="_blank" rel="noopener noreferrer"' : ''
-      } ${paymentLinks?.deepLink ? `data-upi-link="${paymentLinks.deepLink}"` : ''} style="display:block;text-decoration:none;color:inherit;">
-        <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
-        <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
-      </a>`
-    : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
+  
+    const paymentHref = paymentLinks?.primary || '#';
+  
+    const phonePeHtml = phonePeQr
+      ? `<a href="${paymentHref}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;color:inherit;">
+          <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
+          <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
+        </a>`
+      : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
+  
 
   const termsContent = `
     <div style="line-height:1.2;">
