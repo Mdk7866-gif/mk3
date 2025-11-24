@@ -239,61 +239,50 @@ function buildVerificationUrl(doc: QuotationDocument): string | null {
   return url.toString();
 }
 
-function buildPaymentLinks(
-  doc: QuotationDocument,
-  amountOverride?: number,
-): { primary: string; deepLink?: string } | null {
+function buildPaymentLinks(doc: Quotation): { primary: string; deepLink?: string } | null {
+  // If quotation already has an explicit payment link, use that
   const direct =
-    doc.paymentLink ||
-    doc.paymentUrl ||
-    doc.paymentPage ||
-    doc.phonePeLink ||
-    doc.gpayLink ||
-    doc.paytmLink;
+    (typeof doc.paymentLink === 'string' && doc.paymentLink) ||
+    (typeof doc.paymentUrl === 'string' && doc.paymentUrl) ||
+    (typeof doc.paymentPage === 'string' && doc.paymentPage) ||
+    (typeof doc.phonePeLink === 'string' && doc.phonePeLink) ||
+    (typeof doc.gpayLink === 'string' && doc.gpayLink) ||
+    (typeof doc.paytmLink === 'string' && doc.paytmLink) ||
+    '';
 
-  if (typeof direct === 'string' && direct.length > 4) {
+  if (direct && direct.length > 4) {
     return { primary: direct };
   }
 
-  const upiIdRaw = doc.upiId || doc.upi || '9979131416@ybl';
-  const upiId = upiIdRaw.replace(/\s+/g, '');
-  const payeeName = doc.upiName || doc.clientName || 'MUSTAK KHAN';
+  // ✅ Your fixed UPI details (no amount)
+  const upiId = '9979174216@ybl';
+  const payeeName = 'Mustak Ishamohmmed Khan';
+  const note = 'thank you for yourpayment';
 
-  const fallbackItemsTotal =
-    Array.isArray(doc.items) && doc.items.length
-      ? doc.items.reduce(
-          (sum: number, it: QuotationItem) => {
-            const qty = parseFloat(String(it.quantity ?? 0)) || 0;
-            const rate = parseFloat(String(it.rate ?? 0)) || 0;
-            const amt =
-              parseFloat(
-                String(it.totalAmount ?? it.amount ?? qty * rate),
-              ) || 0;
-            return sum + amt;
-          },
-          0,
-        )
-      : undefined;
-
-  const amount =
-    amountOverride ??
-    doc.totalAmountAfterTax ??
-    doc.totalAmount ??
-    fallbackItemsTotal;
-
+  // No amount here on purpose – user will enter any amount in UPI app
   const upiParams = new URLSearchParams({
     pa: upiId,
     pn: payeeName,
     cu: 'INR',
-    mode: '02',
+    tn: note,
   });
 
-  if (amount) upiParams.set('am', String(amount));
-
-  const httpsLink = `https://upi.me/pay?${upiParams.toString()}`;
+  // Deep link that actually opens UPI app
   const deepLink = `upi://pay?${upiParams.toString()}`;
 
-  return { primary: httpsLink, deepLink };
+  // HTTPS link to your quotation payment page
+  const base =
+    DEFAULT_PUBLIC_BASE_URL.startsWith('http')
+      ? DEFAULT_PUBLIC_BASE_URL
+      : `https://${DEFAULT_PUBLIC_BASE_URL}`;
+
+  const redirectUrl = new URL('/upi-payquotation', base);
+  redirectUrl.search = upiParams.toString();
+
+  return {
+    primary: redirectUrl.toString(), // 🔹 this goes into the PDF QR <a href="">
+    deepLink,
+  };
 }
 
 /* ---------- HTML Builder ---------- */
@@ -325,7 +314,7 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
     0,
   );
 
-  const paymentLinks = buildPaymentLinks(quotation, grandTotal);
+  const paymentLinks = buildPaymentLinks(quotation);
 
   const itemsRows = items
     .map(
@@ -361,17 +350,15 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
       </a>`
     : qrImage;
 
-  const paymentHref = paymentLinks?.primary || '#';
-  const phonePeHtml = phonePeQr
-    ? `<a href="${paymentHref}" ${
-        paymentLinks ? 'target="_blank" rel="noopener noreferrer"' : ''
-      } ${
-        paymentLinks?.deepLink ? `data-upi-link="${paymentLinks.deepLink}"` : ''
-      } style="display:block;text-decoration:none;color:inherit;">
-        <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
-        <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
-      </a>`
-    : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
+    const paymentHref = paymentLinks?.primary || '#';
+
+    const phonePeHtml = phonePeQr
+      ? `<a href="${paymentHref}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;color:inherit;">
+          <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
+          <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
+        </a>`
+      : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
+  
 
   const termsContent = `
     <div style="line-height:1.2;">

@@ -1,6 +1,6 @@
 // src/app/upi-payquotation/page.tsx
 
-import UpiPayClientQuotation from './UpiPayClientQuotation';
+import UpiPayClientQuotation from './UpiPayClientQuotation'
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -17,7 +17,7 @@ function getParam(searchParams: SearchParams | undefined, key: string, fallback 
 export default function UpiPayQuotationPage({ searchParams }: PageProps) {
   const pa = getParam(searchParams, 'pa', '9979174216@ybl');
   const pn = getParam(searchParams, 'pn', 'Mustak Ishamohmmed Khan');
-  const tn = getParam(searchParams, 'tn', 'thank you for yourpayment');
+  const tn = getParam(searchParams, 'tn', 'Thank you for your payment');
   const cu = getParam(searchParams, 'cu', 'INR');
 
   return (
