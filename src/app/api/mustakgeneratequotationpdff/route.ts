@@ -239,7 +239,9 @@ function buildVerificationUrl(doc: QuotationDocument): string | null {
   return url.toString();
 }
 
-function buildPaymentLinks(doc: Quotation): { primary: string; deepLink?: string } | null {
+function buildPaymentLinks(
+  doc: QuotationDocument,
+): { primary: string; deepLink?: string } | null {
   // If quotation already has an explicit payment link, use that
   const direct =
     (typeof doc.paymentLink === 'string' && doc.paymentLink) ||
@@ -259,7 +261,6 @@ function buildPaymentLinks(doc: Quotation): { primary: string; deepLink?: string
   const payeeName = 'Mustak Ishamohmmed Khan';
   const note = 'thank you for yourpayment';
 
-  // No amount here on purpose – user will enter any amount in UPI app
   const upiParams = new URLSearchParams({
     pa: upiId,
     pn: payeeName,
@@ -267,10 +268,8 @@ function buildPaymentLinks(doc: Quotation): { primary: string; deepLink?: string
     tn: note,
   });
 
-  // Deep link that actually opens UPI app
   const deepLink = `upi://pay?${upiParams.toString()}`;
 
-  // HTTPS link to your quotation payment page
   const base =
     DEFAULT_PUBLIC_BASE_URL.startsWith('http')
       ? DEFAULT_PUBLIC_BASE_URL
@@ -280,10 +279,11 @@ function buildPaymentLinks(doc: Quotation): { primary: string; deepLink?: string
   redirectUrl.search = upiParams.toString();
 
   return {
-    primary: redirectUrl.toString(), // 🔹 this goes into the PDF QR <a href="">
+    primary: redirectUrl.toString(),
     deepLink,
   };
 }
+
 
 /* ---------- HTML Builder ---------- */
 
@@ -309,10 +309,7 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
       ? 'density-compact'
       : 'density-regular';
 
-  const grandTotal: number = items.reduce(
-    (sum: number, item: QuotationItem) => sum + computeItemAmount(item),
-    0,
-  );
+
 
   const paymentLinks = buildPaymentLinks(quotation);
 
