@@ -1,39 +1,42 @@
 // src/app/upi-pay/page.tsx
 'use client';
+'use client';
 
 import { useEffect, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
 
-export default function UpiPayPage() {
-  const searchParams = useSearchParams();
+type SearchParams = { [key: string]: string | string[] | undefined };
 
+interface UpiPayPageProps {
+  searchParams?: SearchParams;
+}
+
+function getParam(searchParams: SearchParams | undefined, key: string, fallback = ''): string {
+  const value = searchParams?.[key];
+  if (Array.isArray(value)) return value[0] ?? fallback;
+  return (value as string | undefined) ?? fallback;
+}
+
+export default function UpiPayPage({ searchParams }: UpiPayPageProps) {
   // Build the UPI deep link from query params
   const upiUrl = useMemo(() => {
-    const pa = searchParams.get('pa') || '9979174216@ybl';
-    const pn = searchParams.get('pn') || 'Mustak Ishamohmmed Khan';
-    const am = searchParams.get('am') || '';
-    const tn = searchParams.get('tn') || 'thank you for yourpayment';
-    const cu = searchParams.get('cu') || 'INR';
+    const pa = getParam(searchParams, 'pa', '9979174216@ybl');
+    const pn = getParam(searchParams, 'pn', 'Mustak Ishamohmmed Khan');
+    const am = getParam(searchParams, 'am', '');
+    const tn = getParam(searchParams, 'tn', 'thank you for yourpayment');
+    const cu = getParam(searchParams, 'cu', 'INR');
 
-    const params = new URLSearchParams({
-      pa,
-      pn,
-      tn,
-      cu,
-    });
-
+    const params = new URLSearchParams({ pa, pn, tn, cu });
     if (am) params.set('am', am);
 
     return `upi://pay?${params.toString()}`;
   }, [searchParams]);
 
   useEffect(() => {
-    // Try automatic redirect to UPI app
     if (!upiUrl) return;
     try {
       window.location.href = upiUrl;
     } catch {
-      // ignore, user can tap the button below
+      // ignore – user can click the button
     }
   }, [upiUrl]);
 
@@ -116,8 +119,8 @@ export default function UpiPayPage() {
             marginTop: '12px',
           }}
         >
-          If you still don&apos;t see your UPI app, copy the link from the
-          browser and open it in your UPI-enabled device.
+          If you still don&apos;t see your UPI app, copy this link and open it
+          in your UPI-enabled device.
         </p>
       </div>
     </main>
