@@ -24,7 +24,7 @@ const DEFAULT_PUBLIC_BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL ||
   process.env.SITE_URL ||
   normalizedVercelUrl ||
-  'https://mk3.vercel.app';
+  'http://mk3-kappa.vercel.app';
 
 const client = new MongoClient(MONGODB_URI, {
   serverApi: {
