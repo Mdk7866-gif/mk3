@@ -8,6 +8,7 @@ const HIDE_LAYOUT_PREFIXES = [
   '/verifyqrcodefrontend',
   '/verifyqrcodefrontendmushahid',
   '/verifyqrcodefrontendmustak',
+  '/upi-pay',
 ];
 
 export default function LayoutWrapper({ children }: { children: ReactNode }) {
