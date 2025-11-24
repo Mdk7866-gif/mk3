@@ -1,4 +1,5 @@
 // src/app/upi-pay/page.tsx
+
 import UpiPayClient from './UpiPayClient';
 
 type SearchParams = { [key: string]: string | string[] | undefined };
