@@ -502,16 +502,16 @@ function buildInvoiceHtml(invoice: GstInvoice): string {
     </div>
 
     <table class="items" role="table" aria-label="Invoice Items">
-      <thead>
+        <thead>
         <tr>
           <th style="width:6%;">S. No.</th>
           <th style="width:44%;text-align:left;">Product Description</th>
-          <th style="width:10%;">HSN</th>
-          <th style="width:8%;">QTY.</th>
-          <th style="width:12%;">Rate</th>
-          <th style="width:12%;">Taxable Value</th>
+          <th style="width:5%;">HSN</th>
+          <th style="width:5%;">QTY.</th>
+          <th style="width:5%;">Rate</th>
+          <th style="width:8%;">Taxable Value</th>
           <th style="width:8%;">GST(18%)</th>
-          <th style="width:12%;">Total</th>
+          <th style="width:8%;">Total</th>
         </tr>
       </thead>
       <tbody>${itemsRows}</tbody>
