@@ -297,15 +297,25 @@ function buildInvoiceHtml(invoice: GstInvoice): string {
       </a>`
     : qrImage;
 
-    const paymentHref = paymentLinks?.primary || '#';
+  const paymentHref = paymentLinks?.primary || '#';
 
-    const phonePeHtml = phonePeQr
-      ? `<a href="${paymentHref}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;color:inherit;">
-          <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
-          <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
-        </a>`
-      : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
-  
+  // ---------- TEMPORARY TOGGLE ----------
+  // Set this to `true` to restore PhonePe QR and label.
+  // Default: false (so QR removed and blank placeholder used).
+  const showPhonePe = false;
+  // -------------------------------------
+
+  // If showPhonePe is enabled and phonePeQr exists, render the original QR + link.
+  // Otherwise render an explicit blank placeholder with the same visual size to preserve layout.
+  const phonePeHtml = showPhonePe && phonePeQr
+    ? `<a href="${paymentHref}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;color:inherit;">
+         <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
+         <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
+       </a>`
+    : `<div style="width:80px;height:88px;display:block;margin:0 auto;border-radius:4px;">
+         <!-- intentionally left blank to preserve layout when QR is hidden -->
+       </div>`;
+
   const termsContent = `
     <div style="line-height:1.2;">
       1.) SUBJECT TO AHMEDABAD JURISDICTION.<br/>
@@ -540,17 +550,25 @@ function buildInvoiceHtml(invoice: GstInvoice): string {
       </div>
     </div>
 
-    <div class="sign-block">
+     <div class="sign-block">
       <div style="text-align:center;">
         <div style="height: 10px;"></div> <div class="signature-line">Customer Signature</div>
       </div>
       <div style="text-align:center;">
         <div style="height: 10px;"></div> <div class="signature-line">Authorised Signatory</div>
       </div>
-      <div class="phonepe-box" title="Pay via PhonePe">
-        <h5>Pay via PhonePe</h5>${phonePeHtml}
+
+      <!-- phonepe box: when showPhonePe is false, override border/background so no visible box shows -->
+      <div
+        class="phonepe-box"
+        title="Pay via PhonePe"
+        style="${showPhonePe ? '' : 'border:none;background:transparent;padding:4px;'}"
+        aria-hidden="${showPhonePe ? 'false' : 'true'}"
+      >
+        ${showPhonePe ? `<h5>Pay via PhonePe</h5>${phonePeHtml}` : phonePeHtml}
       </div>
     </div>
+
     <div style="text-align:center;margin-top:4px;font-size:9px;color:#94a3b8;">This is a computer generated invoice.</div>
   </div>
 </body>
