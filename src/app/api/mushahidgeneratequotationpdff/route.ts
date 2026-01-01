@@ -282,12 +282,10 @@ function buildQuotationHtml(quotation: Quotation): string {
         <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;">${
           item.description ?? ''
         }</td>
-        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
+        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;"></td>
+        <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">${
           item.quantity ?? ''
         }</td>
-        <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${Number(
-          item.rate ?? 0,
-        ).toFixed(2)}</td>
         <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${computeAmount(
           item,
         ).toFixed(2)}</td>
@@ -456,9 +454,9 @@ function buildQuotationHtml(quotation: Quotation): string {
           <tr>
             <th style="width:8%;">S. No.</th>
             <th style="width:52%;">Product Description</th>
-            <th style="width:15%;">QTY.</th>
-            <th style="width:10%;">Rate</th>
-            <th style="width:2%;">Amount</th>
+            <th style="width:15%;"></th>
+            <th style="width:10%;">QTY.</th>
+            <th style="width:2%;">Rate</th>
           </tr>
         </thead>
         <tbody>${itemsRows}</tbody>
