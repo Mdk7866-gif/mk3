@@ -331,8 +331,7 @@ function buildQuotationHtml(quotation: Quotation): string {
     ? `<div style="margin-top:3px;"><strong>Notes:</strong><br/>${quotation.notes}</div>`
     : '';
 
-  const certHtml =
-    '<div style="margin-top:3px;">Certified that the particulars given above are true &amp; correct. For <strong>MUSHAHID KHAN</strong>.</div>';
+
 
   const quotationDate =
     typeof quotation.date === 'string' && quotation.date
@@ -417,7 +416,7 @@ function buildQuotationHtml(quotation: Quotation): string {
           <div style="margin-top:4px;font-size:11px;">
             <strong>Mob:</strong> 9023199465 &nbsp;&nbsp;<strong>Email:</strong> mujamahe@gmail.com
           </div>
-          <div style="margin-top:2px;font-size:11px;"><strong>GSTIN:</strong> 24BEQPK9997B1ZW</div>
+          <div style="margin-top:2px;font-size:11px;"><strong>GSTIN:</strong> -</div>
         </div>
         <div class="qr-holder" title="Quotation QR">${qrHtml}</div>
       </div>
@@ -437,7 +436,7 @@ function buildQuotationHtml(quotation: Quotation): string {
             <strong>Address:</strong> C-1/207 Marjan Residency Nr. Alkuba Canal Road, Vatva, Ahmedabad - 382440, Gujarat<br/>
             <strong>Mobile:</strong> 9023199465<br/>
             <strong>Email:</strong> mujamahe@gmail.com<br/>
-            <strong>GSTIN:</strong> 24BEQPK9997B1ZW
+            <strong>GSTIN:</strong> -
           </div>
         </div>
         <div class="box">
@@ -472,18 +471,14 @@ function buildQuotationHtml(quotation: Quotation): string {
             Bank Name: SBI BANK-LAMBHA<br/>
             A/C: 42005260280 &nbsp;|&nbsp; IFSC: SBIN0016026 &nbsp;|&nbsp; PAN No: GDYPM4112E
           </div>
-          ${amountWordsHtml}
           
-          <div style="font-size:9.5px;color:#475569;margin-top:3px;">
-            ${notesHtml}${certHtml}
-          </div>
+             <div style="font-size:9.5px;color:#475569;margin-top:3px;">
+          ${notesHtml}
         </div>
-        <div class="totals" role="note" aria-label="Amount Summary">
-          <div class="row total">
-            <div><strong>Total Quotation Amount</strong></div>
-            <div>₹${grandTotal.toFixed(2)}</div>
-          </div>
+          
+         
         </div>
+      
       </div>
 
       <div class="sign-block">
@@ -505,9 +500,7 @@ function buildQuotationHtml(quotation: Quotation): string {
 
       </div>
 
-      <div style="text-align:center;margin-top:4px;font-size:9px;color:#94a3b8;">
-        This is a computer generated quotation.
-      </div>
+      
     </div>
   </body>
   </html>`;

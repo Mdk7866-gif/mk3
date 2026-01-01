@@ -584,7 +584,7 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
   <div class="container">
     <div class="header">
       <div class="company">
-        <h1>MUSTAK KHAN</h1>
+        <h1>MUSTAK ISHAMOHAMMAD KHAN</h1>
         <div class="muted" style="font-weight:500; color:#334155;">(An expert in ceiling design)</div>
         <div class="muted">C-1/207 Marjan Residency Nr. Alkuba Canal Road, Vatva, Ahmedabad - 382440, Gujarat</div>
         <div style="margin-top:4px;font-size:11px;">
@@ -608,7 +608,7 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
       <div class="box">
         <h4>Company Details</h4>
         <div style="font-size:10.5px;color:#0b1220;line-height:1.25;">
-          <strong>Name:</strong> MUSTAK KHAN<br/>
+          <strong>Name:</strong> MUSTAK ISHAMOHAMMAD KHAN<br/>
           <strong>Address:</strong> C-1/207 Marjan Residency Nr. Alkuba Canal Road, Vatva, Ahmedabad - 382440, Gujarat<br/>
           <strong>Mobile:</strong> 9979174216<br/>
           <strong>Email:</strong> mustakkhan.mk550@gmail.com<br/>
@@ -650,14 +650,10 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
         ${amountWordsHtml}
         
         <div style="font-size:9.5px;color:#475569;margin-top:3px;">
-          ${notesHtml}${certHtml}
+          ${notesHtml}
         </div>
       </div>
-      <div class="totals" role="note" aria-label="Amount Summary">
-        <div class="row total">
-          <!-- Totals intentionally left blank for quotation -->
-        </div>
-      </div>
+    
     </div>
 
     <div class="sign-block">
@@ -679,9 +675,7 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
 
     </div>
 
-    <div style="text-align:center;margin-top:4px;font-size:9px;color:#94a3b8;">
-      This is a computer generated quotation.
-    </div>
+    
   </div>
 </body>
 </html>`;
