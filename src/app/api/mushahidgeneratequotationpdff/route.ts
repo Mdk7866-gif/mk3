@@ -321,13 +321,7 @@ function buildQuotationHtml(quotation: Quotation): string {
 
   
 
-  const termsContent = `
-    <div style="line-height:1.2;">
-      1.) SUBJECT TO AHMEDABAD JURISDICTION.<br/>
-      2.) ANY TAXES APPLICABLE WILL BE BORNE BY THE CUSTOMER.<br/>
-      3.) PLEASE PAY BY CASH / CROSSED CHEQUE / DEMAND DRAFT / UPI / NETBANKING ONLY.<br/>
-      4.) PLEASE MAKE CHEQUE PAYMENTS PAYABLE TO THE APPROPRIATE BENEFICIARY AS ADVISED.
-    </div>`;
+
 
   const amountWordsHtml = quotation.amountInWords
     ? `<div style="margin-top:4px;font-weight:800;font-size:10.5px;color:#0b1220;">Amount in Words: ${quotation.amountInWords}</div>`
@@ -479,9 +473,7 @@ function buildQuotationHtml(quotation: Quotation): string {
             A/C: 42005260280 &nbsp;|&nbsp; IFSC: SBIN0016026 &nbsp;|&nbsp; PAN No: GDYPM4112E
           </div>
           ${amountWordsHtml}
-          <div style="margin-top:4px;font-size:9.5px;color:#374151;text-transform:uppercase;">
-            <strong>Terms &amp; Conditions:</strong>${termsContent}
-          </div>
+          
           <div style="font-size:9.5px;color:#475569;margin-top:3px;">
             ${notesHtml}${certHtml}
           </div>
