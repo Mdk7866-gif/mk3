@@ -349,12 +349,17 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
 
     const paymentHref = paymentLinks?.primary || '#';
 
-    const phonePeHtml = phonePeQr
-      ? `<a href="${paymentHref}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;color:inherit;">
-          <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
-          <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
-        </a>`
-      : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
+ const phonePeHtml = `
+  <div
+    style="
+      width: 80px;
+      height: 95px;
+      background: #ffffff;
+      margin: 0 auto;
+    "
+  ></div>
+`;
+
   
 
   const termsContent = `
@@ -672,9 +677,14 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
         <div style="height: 10px;"></div>
         <div class="signature-line">Authorised Signatory</div>
       </div>
-      <div class="phonepe-box" title="Pay via PhonePe">
-        <h5>Pay via PhonePe</h5>${phonePeHtml}
-      </div>
+     <div
+  style="
+    width:105px;
+    height:140px;
+    background:#ffffff;
+  "
+></div>
+
     </div>
 
     <div style="text-align:center;margin-top:4px;font-size:9px;color:#94a3b8;">
