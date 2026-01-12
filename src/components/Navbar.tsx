@@ -15,6 +15,7 @@ const Navbar = () => {
         { label: 'Invoice', href: '/mustak/invoice' },
         { label: 'GST', href: '/mustak/gst' },
         { label: 'Quotation', href: '/mustak/quotation' },
+        { label: 'Proforma Invoice', href: '/mustak/proformainvoice' },
       ],
     },
     {

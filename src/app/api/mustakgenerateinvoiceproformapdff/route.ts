@@ -568,7 +568,6 @@ function buildInvoiceHtml(invoice: InvoiceDocument): string {
       align-items:flex-end; 
       margin-top: 0px;
       padding-top: 4px; 
-      border-top: 1px solid #f1f5f9;
     }
     .signature-line {
       border-top:1.5px solid #0b1220;
@@ -619,12 +618,12 @@ function buildInvoiceHtml(invoice: InvoiceDocument): string {
     <div class="header">
       <div class="company">
         <h1>MUSTAK KHAN</h1>
-        <div class="muted" style="font-weight:500; color:#334155;">(An expert in ceiling design)</div>
+        <div class="muted" style="font-weight:500; color:#334155;">(An expert in plaster of paris (POP))</div>
         <div class="muted">C-1/207 Marjan Residency Nr. Alkuba Canal Road, Vatva, Ahmedabad - 382440, Gujarat</div>
         <div style="margin-top:4px;font-size:11px;">
           <strong>Mob:</strong> 9979174216 &nbsp;&nbsp;<strong>Email:</strong> mustakkhan.mk550@gmail.com
         </div>
-        <div style="margin-top:2px;font-size:11px;"><strong>GSTIN:</strong> 24BEQPK9997B1ZW</div>
+        <div style="margin-top:2px;font-size:11px;"><strong>.</strong></div>
       </div>
       <div class="qr-holder" title="Invoice QR">${qrHtml}</div>
     </div>
@@ -645,7 +644,7 @@ function buildInvoiceHtml(invoice: InvoiceDocument): string {
           <strong>Address:</strong> C-1/207 Marjan Residency Nr. Alkuba Canal Road, Vatva, Ahmedabad - 382440, Gujarat<br/>
           <strong>Mobile:</strong> 9979174216<br/>
           <strong>Email:</strong> mustakkhan.mk550@gmail.com<br/>
-          <strong>GSTIN:</strong> 24BEQPK9997B1ZW
+          
         </div>
       </div>
       <div class="box">
