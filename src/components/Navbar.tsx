@@ -24,6 +24,7 @@ const Navbar = () => {
         { label: 'Invoice', href: '/mushahid/invoice' },
         { label: 'GST', href: '/mushahid/gst' },
         { label: 'Quotation', href: '/mushahid/quotation' },
+        { label: 'Proforma Invoice', href: '/mushahid/proformainvoice' },
       ],
     },
   ];
