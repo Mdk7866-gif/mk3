@@ -45,9 +45,9 @@ type QrBinary =
 type QrInput =
   | QrBinary
   | {
-      qrCode?: QrBinary;
-      qr?: QrBinary;
-    }
+    qrCode?: QrBinary;
+    qr?: QrBinary;
+  }
   | null
   | undefined;
 
@@ -230,8 +230,8 @@ function buildVerificationUrl(invoice: InvoiceDocument): string | null {
     issuer === 'mushahid'
       ? '/verifyqrcodefrontendmushahid'
       : issuer === 'mustak'
-      ? '/verifyqrcodefrontendmustak'
-      : '/verifyqrcodefrontendmustak';
+        ? '/verifyqrcodefrontendmustak'
+        : '/verifyqrcodefrontendmustak';
 
   const base =
     DEFAULT_PUBLIC_BASE_URL.startsWith('http')
@@ -272,9 +272,9 @@ function buildPaymentLinks(
   const fallbackItemsTotal =
     Array.isArray(invoice.items) && invoice.items.length
       ? invoice.items.reduce((sum: number, it: InvoiceItem) => {
-          const amt = parseFloat(String(it.totalAmount ?? it.amount ?? 0)) || 0;
-          return sum + amt;
-        }, 0)
+        const amt = parseFloat(String(it.totalAmount ?? it.amount ?? 0)) || 0;
+        return sum + amt;
+      }, 0)
       : undefined;
 
   const amountRaw =
@@ -293,7 +293,7 @@ function buildPaymentLinks(
   if (amountRaw !== undefined && amountRaw !== null) {
     upiParams.set('am', String(amountRaw));
   }
-  
+
 
   // ✅ Deep UPI link
   const deepLink = `upi://pay?${upiParams.toString()}`;
@@ -332,8 +332,8 @@ function buildInvoiceHtml(invoice: InvoiceDocument): string {
     itemsCount > 34
       ? 'density-ultra'
       : itemsCount > 24
-      ? 'density-compact'
-      : 'density-regular';
+        ? 'density-compact'
+        : 'density-regular';
 
   const grandTotal: number = items.reduce(
     (sum: number, item: InvoiceItem) => sum + computeItemAmount(item),
@@ -346,21 +346,18 @@ function buildInvoiceHtml(invoice: InvoiceDocument): string {
     .map(
       (item: InvoiceItem) => `
   <tr>
-    <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
-      item.no ?? ''
-    }</td>
-    <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;">${
-      item.description ?? ''
-    }</td>
-    <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
-      item.quantity ?? ''
-    }</td>
+    <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.no ?? ''
+        }</td>
+    <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.description ?? ''
+        }</td>
+    <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.quantity ?? ''
+        }</td>
     <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${(
-      parseFloat(String(item.rate ?? 0)) || 0
-    ).toFixed(2)}</td>
+          parseFloat(String(item.rate ?? 0)) || 0
+        ).toFixed(2)}</td>
     <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${computeItemAmount(
-      item,
-    ).toFixed(2)}</td>
+          item,
+        ).toFixed(2)}</td>
   </tr>`,
     )
     .join('');
@@ -377,12 +374,20 @@ function buildInvoiceHtml(invoice: InvoiceDocument): string {
     : qrImage;
 
   const paymentHref = paymentLinks?.primary || '#';
-  const phonePeHtml = phonePeQr
-  ? `<a href="${paymentHref}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;color:inherit;">
-      <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
-      <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
-    </a>`
-  : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
+  // ---------- TEMPORARY TOGGLE ----------
+  // Set this to `true` to restore PhonePe QR and label.
+  // Default: false (so QR removed and blank placeholder used).
+  const showPhonePe = false;
+  // -------------------------------------
+
+  const phonePeHtml = showPhonePe && phonePeQr
+    ? `<a href="${paymentHref}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;color:inherit;">
+        <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
+        <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
+      </a>`
+    : `<div style="width:80px;height:88px;display:block;margin:0 auto;border-radius:4px;">
+         <!-- intentionally left blank to preserve layout when QR is hidden -->
+       </div>`;
 
 
   const termsContent = `
@@ -628,9 +633,8 @@ function buildInvoiceHtml(invoice: InvoiceDocument): string {
 
     <div class="meta">
       <div><strong>Invoice No:</strong> ${invoice.invoiceNumber ?? 'N/A'}</div>
-      <div style="text-align:right"><strong>Invoice Date:</strong> ${
-        invoice.date ?? new Date().toLocaleDateString('en-IN')
-      }</div>
+      <div style="text-align:right"><strong>Invoice Date:</strong> ${invoice.date ?? new Date().toLocaleDateString('en-IN')
+    }</div>
     </div>
 
     <div class="section">
@@ -701,8 +705,14 @@ function buildInvoiceHtml(invoice: InvoiceDocument): string {
         <div style="height: 10px;"></div>
         <div class="signature-line">Authorised Signatory</div>
       </div>
-      <div class="phonepe-box" title="Pay via PhonePe">
-        <h5>Pay via PhonePe</h5>${phonePeHtml}
+      <!-- phonepe box: when showPhonePe is false, override border/background so no visible box shows -->
+      <div
+        class="phonepe-box"
+        title="Pay via PhonePe"
+        style="${showPhonePe ? '' : 'border:none;background:transparent;padding:4px;'}"
+        aria-hidden="${showPhonePe ? 'false' : 'true'}"
+      >
+        ${showPhonePe ? `<h5>Pay via PhonePe</h5>${phonePeHtml}` : phonePeHtml}
       </div>
     </div>
 
@@ -841,6 +851,6 @@ export async function GET(): Promise<NextResponse> {
       { status: 500 },
     );
   } finally {
-    await client.close().catch(() => {});
+    await client.close().catch(() => { });
   }
 }

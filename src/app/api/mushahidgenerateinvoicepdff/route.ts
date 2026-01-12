@@ -97,10 +97,10 @@ function getQrDataUri(qrAny: unknown): string | null {
 
     const qr =
       typeof qrAny === 'object' &&
-      qrAny !== null &&
-      ('qrCode' in qrAny || 'qr' in qrAny)
+        qrAny !== null &&
+        ('qrCode' in qrAny || 'qr' in qrAny)
         ? ((qrAny as { qrCode?: unknown; qr?: unknown }).qrCode ??
-           (qrAny as { qrCode?: unknown; qr?: unknown }).qr)
+          (qrAny as { qrCode?: unknown; qr?: unknown }).qr)
         : qrAny;
 
     if (!qr) return null;
@@ -197,8 +197,8 @@ function buildVerificationUrl(invoice: Invoice): string | null {
     issuer === 'mushahid'
       ? '/verifyqrcodefrontendmushahid'
       : issuer === 'mustak'
-      ? '/verifyqrcodefrontendmustak'
-      : '/verifyqrcodefrontendmushahid';
+        ? '/verifyqrcodefrontendmustak'
+        : '/verifyqrcodefrontendmushahid';
 
   const base =
     DEFAULT_PUBLIC_BASE_URL.startsWith('http')
@@ -240,10 +240,10 @@ function buildPaymentLinks(
   const fallbackItemsTotal =
     Array.isArray(invoice.items) && invoice.items.length
       ? invoice.items.reduce((sum: number, it: InvoiceItem) => {
-          const directAmt = it.totalAmount ?? it.amount ?? 0;
-          const amt = Number(directAmt) || 0;
-          return sum + amt;
-        }, 0)
+        const directAmt = it.totalAmount ?? it.amount ?? 0;
+        const amt = Number(directAmt) || 0;
+        return sum + amt;
+      }, 0)
       : undefined;
 
   const amountRaw =
@@ -307,14 +307,11 @@ function buildInvoiceHtml(invoice: Invoice): string {
     .map(
       (item: InvoiceItem) => `
       <tr>
-        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
-          item.no ?? ''
+        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.no ?? ''
         }</td>
-        <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;">${
-          item.description ?? ''
+        <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.description ?? ''
         }</td>
-        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
-          item.quantity ?? ''
+        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.quantity ?? ''
         }</td>
         <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${Number(
           item.rate ?? 0,
@@ -337,15 +334,23 @@ function buildInvoiceHtml(invoice: Invoice): string {
       </a>`
     : qrImage;
 
-    const paymentHref = paymentLinks?.primary || '#';
+  const paymentHref = paymentLinks?.primary || '#';
 
-    const phonePeHtml = phonePeQr
-      ? `<a href="${paymentHref}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;color:inherit;">
+  // ---------- TEMPORARY TOGGLE ----------
+  // Set this to `true` to restore PhonePe QR and label.
+  // Default: false (so QR removed and blank placeholder used).
+  const showPhonePe = false;
+  // -------------------------------------
+
+  const phonePeHtml = showPhonePe && phonePeQr
+    ? `<a href="${paymentHref}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;color:inherit;">
           <img alt="UPI Payment QR" src="${phonePeQr}" style="width:80px;height:auto;display:block;margin:0 auto;border-radius:4px;" decoding="async" />
           <div style="font-size:9px;color:#0f172a;margin-top:3px;font-weight:600;">Scan or tap to pay</div>
         </a>`
-      : `<div style="font-size:10px;color:#6b7280;text-align:center">No QR</div>`;
-  
+    : `<div style="width:80px;height:88px;display:block;margin:0 auto;border-radius:4px;">
+           <!-- intentionally left blank to preserve layout when QR is hidden -->
+         </div>`;
+
   const termsContent = `
     <div style="line-height:1.2;">
       1.) SUBJECT TO AHMEDABAD JURISDICTION.<br/>
@@ -663,8 +668,14 @@ function buildInvoiceHtml(invoice: Invoice): string {
         <div style="height: 10px;"></div>
         <div class="signature-line">Authorised Signatory</div>
       </div>
-      <div class="phonepe-box" title="Pay via PhonePe">
-        <h5>Pay via PhonePe</h5>${phonePeHtml}
+      <!-- phonepe box: when showPhonePe is false, override border/background so no visible box shows -->
+      <div
+        class="phonepe-box"
+        title="Pay via PhonePe"
+        style="${showPhonePe ? '' : 'border:none;background:transparent;padding:4px;'}"
+        aria-hidden="${showPhonePe ? 'false' : 'true'}"
+      >
+        ${showPhonePe ? `<h5>Pay via PhonePe</h5>${phonePeHtml}` : phonePeHtml}
       </div>
     </div>
 
