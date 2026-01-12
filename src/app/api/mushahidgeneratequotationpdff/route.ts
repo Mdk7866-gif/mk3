@@ -409,7 +409,7 @@ function buildQuotationHtml(quotation: Quotation): string {
       <div class="header">
         <div class="company">
           <h1>MUSHAHID KHAN</h1>
-          <div class="muted" style="font-weight:500; color:#334155;">(An expert in ceiling design)</div>
+          <div class="muted" style="font-weight:500; color:#334155;">(An expert in plaster of paris (POP))</div>
           <div class="muted">C-1/207 Marjan Residency Nr. Alkuba Canal Road, Vatva, Ahmedabad - 382440, Gujarat</div>
           <div style="margin-top:4px;font-size:11px;">
             <strong>Mob:</strong> 9023199465 &nbsp;&nbsp;<strong>Email:</strong> mujamahe@gmail.com
