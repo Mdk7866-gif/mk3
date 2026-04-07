@@ -121,9 +121,11 @@ export async function POST(req: NextRequest) {
     const documentType = 'quotation';
     const verifyRoute = 'verifyqrcodefrontendmustak';
 
+    const baseUrl = process.env.WEBSITE_DEPLOYEMENT || 'http://localhost:3000';
+
     // Generate QR code (encoding the verify endpoint URL with quotationNumber)
     const qrCodeDataURL = await QRCode.toDataURL(
-      `http://localhost:3000/${verifyRoute}?invoiceNumber=${quotationNumber}&type=${documentType}`,
+      `${baseUrl}/${verifyRoute}?invoiceNumber=${quotationNumber}&type=${documentType}`,
     );
 
     // ✅ Prepare the document to insert (NO pdfLink)

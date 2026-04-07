@@ -108,8 +108,10 @@ export async function POST(req: NextRequest) {
     const documentType = 'invoice';
     const verifyRoute = 'verifyqrcodefrontendmushahid';
 
+    const baseUrl = process.env.WEBSITE_DEPLOYEMENT || 'http://localhost:3000';
+
     const qrCodeDataURL = await QRCode.toDataURL(
-      `http://localhost:3000/${verifyRoute}?invoiceNumber=${invoiceNumber}&type=${documentType}`
+      `${baseUrl}/${verifyRoute}?invoiceNumber=${invoiceNumber}&type=${documentType}`
     );
 
     // ✅ FINAL CLEAN DOCUMENT (NO pdfLink)

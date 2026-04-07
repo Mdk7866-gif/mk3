@@ -143,9 +143,11 @@ export async function POST(req: NextRequest) {
     const documentType = 'gst';
     const verifyRoute = 'verifyqrcodefrontendmushahid';
 
+    const baseUrl = process.env.WEBSITE_DEPLOYEMENT || 'http://localhost:3000';
+
     // Generate QR code (encoding the verify endpoint URL with invoiceNumber)
     const qrCodeDataURL = await QRCode.toDataURL(
-      `http://localhost:3000/${verifyRoute}?invoiceNumber=${invoiceNumber}&type=${documentType}`,
+      `${baseUrl}/${verifyRoute}?invoiceNumber=${invoiceNumber}&type=${documentType}`,
     );
 
     // Prepare the document to insert (no Cloudinary/pdfLink now)
