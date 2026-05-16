@@ -39,6 +39,13 @@ const ItemsDetailsQuotationDiscountRate: React.FC<ItemsDetailsQuotationDiscountR
         ]
   );
 
+  // Sync with initialItems if they change (e.g. after prefetch)
+  useEffect(() => {
+    if (initialItems && initialItems.length > 0) {
+      setItems(initialItems);
+    }
+  }, [initialItems]);
+
   useEffect(() => {
     if (onItemsChange) {
       const formattedItems = items.map((item) => ({

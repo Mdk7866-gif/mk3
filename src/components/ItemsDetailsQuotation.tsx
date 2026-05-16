@@ -35,6 +35,13 @@ const ItemsDetailsQuotation: React.FC<ItemsDetailsQuotationProps> = ({ onItemsCh
         ]
   );
 
+  // Sync with initialItems if they change (e.g. after prefetch)
+  useEffect(() => {
+    if (initialItems && initialItems.length > 0) {
+      setItems(initialItems);
+    }
+  }, [initialItems]);
+
   useEffect(() => {
     if (onItemsChange) {
       // Ensure quantity and rate are numbers when valid, preserve empty strings

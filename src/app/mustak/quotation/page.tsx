@@ -1,7 +1,7 @@
 // src/app/mustak/quotation/page.tsx
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import ClientDetails, { ClientFormData } from "@/components/ClientDetails";
 import ItemsDetailsQuotation, {
   QuotationItem,
@@ -31,8 +31,32 @@ interface QuotationData {
 const CreateMustakQuotationPageContent: React.FC = () => {
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [quotationItems, setQuotationItems] = useState<QuotationItem[]>([]);
+  const [initialItems, setInitialItems] = useState<QuotationItem[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  // Prefetch data on mount
+  useEffect(() => {
+    const prefetchData = async () => {
+      try {
+        const response = await fetch("/api/prefetchdata/mustakquotation");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.items && data.items.length > 0) {
+            const itemsWithIds = data.items.map((item: any) => ({
+              ...item,
+              id: item.id || crypto.randomUUID(),
+            }));
+            setInitialItems(itemsWithIds);
+            toast.success("Loaded items from previous quotation", { id: "prefetch" });
+          }
+        }
+      } catch (err) {
+        console.error("Prefetch error:", err);
+      }
+    };
+    prefetchData();
+  }, []);
 
   const handleClientDataChange = useCallback((data: ClientFormData) => {
     setClientData(data);
@@ -232,7 +256,10 @@ const CreateMustakQuotationPageContent: React.FC = () => {
 
       <main className="max-w-4xl mx-auto space-y-8">
         <ClientDetails onDataChange={handleClientDataChange} />
-        <ItemsDetailsQuotation onItemsChange={handleQuotationItemsChange} />
+        <ItemsDetailsQuotation 
+          onItemsChange={handleQuotationItemsChange} 
+          initialItems={initialItems}
+        />
 
         {/* Summary card */}
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-5 shadow-sm">

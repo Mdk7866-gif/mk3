@@ -1,7 +1,7 @@
 // src/app/mustak/quotationdiscountrate/page.tsx
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import ClientDetails, { ClientFormData } from "@/components/ClientDetails";
 import ItemsDetailsQuotationDiscountRate, {
   QuotationDiscountItem,
@@ -34,8 +34,32 @@ const CreateMustakQuotationDiscountPageContent: React.FC = () => {
   const [quotationItems, setQuotationItems] = useState<QuotationDiscountItem[]>(
     []
   );
+  const [initialItems, setInitialItems] = useState<QuotationDiscountItem[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  // Prefetch data on mount
+  useEffect(() => {
+    const prefetchData = async () => {
+      try {
+        const response = await fetch("/api/prefetchdata/mustakquotationdiscountrate");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.items && data.items.length > 0) {
+            const itemsWithIds = data.items.map((item: any) => ({
+              ...item,
+              id: item.id || crypto.randomUUID(),
+            }));
+            setInitialItems(itemsWithIds);
+            toast.success("Loaded items from previous quotation", { id: "prefetch" });
+          }
+        }
+      } catch (err) {
+        console.error("Prefetch error:", err);
+      }
+    };
+    prefetchData();
+  }, []);
 
   const handleClientDataChange = useCallback((data: ClientFormData) => {
     setClientData(data);
@@ -250,8 +274,9 @@ const CreateMustakQuotationDiscountPageContent: React.FC = () => {
 
       <main className="max-w-5xl mx-auto space-y-8">
         <ClientDetails onDataChange={handleClientDataChange} />
-        <ItemsDetailsQuotationDiscountRate
+         <ItemsDetailsQuotationDiscountRate
           onItemsChange={handleQuotationItemsChange}
+          initialItems={initialItems}
         />
 
         {/* Summary card */}
