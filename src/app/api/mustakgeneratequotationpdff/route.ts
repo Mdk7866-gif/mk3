@@ -196,21 +196,7 @@ function getQrDataUri(qrAny: QrInput): string | null {
   }
 }
 
-function loadLocalImageAsDataURI(relPath: string): string | null {
-  try {
-    const safeRel = relPath.replace(/^\/+/, '');
-    const filePath = path.join(process.cwd(), 'public', safeRel);
-    if (!fs.existsSync(filePath)) return null;
-    const buffer = fs.readFileSync(filePath);
-    const ext = path.extname(filePath).toLowerCase();
-    const mime =
-      ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
-    return `data:${mime};base64,${buffer.toString('base64')}`;
-  } catch (e) {
-    console.error('loadLocalImageAsDataURI error:', e);
-    return null;
-  }
-}
+
 
 /* ---------- URL / Payment Helpers ---------- */
 
@@ -240,50 +226,7 @@ function buildVerificationUrl(doc: QuotationDocument): string | null {
   return url.toString();
 }
 
-function buildPaymentLinks(
-  doc: QuotationDocument,
-): { primary: string; deepLink?: string } | null {
-  // If quotation already has an explicit payment link, use that
-  const direct =
-    (typeof doc.paymentLink === 'string' && doc.paymentLink) ||
-    (typeof doc.paymentUrl === 'string' && doc.paymentUrl) ||
-    (typeof doc.paymentPage === 'string' && doc.paymentPage) ||
-    (typeof doc.phonePeLink === 'string' && doc.phonePeLink) ||
-    (typeof doc.gpayLink === 'string' && doc.gpayLink) ||
-    (typeof doc.paytmLink === 'string' && doc.paytmLink) ||
-    '';
 
-  if (direct && direct.length > 4) {
-    return { primary: direct };
-  }
-
-  // ✅ Your fixed UPI details (no amount)
-  const upiId = '9979174216@ybl';
-  const payeeName = 'Mustak Ishamohmmed Khan';
-  const note = 'thank you for yourpayment';
-
-  const upiParams = new URLSearchParams({
-    pa: upiId,
-    pn: payeeName,
-    cu: 'INR',
-    tn: note,
-  });
-
-  const deepLink = `upi://pay?${upiParams.toString()}`;
-
-  const base =
-    DEFAULT_PUBLIC_BASE_URL.startsWith('http')
-      ? DEFAULT_PUBLIC_BASE_URL
-      : `https://${DEFAULT_PUBLIC_BASE_URL}`;
-
-  const redirectUrl = new URL('/upi-payquotation', base);
-  redirectUrl.search = upiParams.toString();
-
-  return {
-    primary: redirectUrl.toString(),
-    deepLink,
-  };
-}
 
 
 /* ---------- HTML Builder ---------- */
@@ -298,7 +241,6 @@ function computeItemAmount(item: QuotationItem): number {
 
 function buildQuotationHtml(quotation: QuotationDocument): string {
   const qrDataUri = getQrDataUri(quotation.qrCode ?? quotation.qr);
-  const phonePeQr = loadLocalImageAsDataURI('phonepe-qr.jpg');
   const verificationUrl = buildVerificationUrl(quotation);
 
   const items: QuotationItem[] = quotation.items ?? [];
@@ -312,7 +254,7 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
 
 
 
-  const paymentLinks = buildPaymentLinks(quotation);
+
 
   const itemsRows = items
     .map(
@@ -346,18 +288,7 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
       </a>`
     : qrImage;
 
-    const paymentHref = paymentLinks?.primary || '#';
 
- const phonePeHtml = `
-  <div
-    style="
-      width: 80px;
-      height: 95px;
-      background: #ffffff;
-      margin: 0 auto;
-    "
-  ></div>
-`;
 
   
 
@@ -371,7 +302,7 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
     ? `<div style="margin-top:3px;"><strong>Notes:</strong><br/>${quotation.notes}</div>`
     : '';
 
-  const certHtml = `<div style="margin-top:3px;">Certified that the particulars given above are true &amp; correct. For <strong>MUSTAK KHAN</strong>.</div>`;
+
 
   return `<!doctype html>
 <html lang="en">

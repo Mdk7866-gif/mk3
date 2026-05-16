@@ -148,20 +148,7 @@ function getQrDataUri(qrAny: unknown): string | null {
   }
 }
 
-function loadLocalImageAsDataURI(relPath: string): string | null {
-  try {
-    const safeRel = relPath.replace(/^\/+/, '');
-    const filePath = path.join(process.cwd(), 'public', safeRel);
-    if (!fs.existsSync(filePath)) return null;
-    const buffer = fs.readFileSync(filePath);
-    const ext = path.extname(filePath).toLowerCase();
-    const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
-    return `data:${mime};base64,${buffer.toString('base64')}`;
-  } catch (e) {
-    console.error('loadLocalImageAsDataURI error:', e);
-    return null;
-  }
-}
+
 
 function buildVerificationUrl(doc: Quotation): string | null {
   const rawUrl =
@@ -197,56 +184,11 @@ function buildVerificationUrl(doc: Quotation): string | null {
   return url.toString();
 }
 
-function buildPaymentLinks(doc: Quotation): { primary: string; deepLink?: string } | null {
-  // If quotation already has an explicit payment link, use that
-  const direct =
-    (typeof doc.paymentLink === 'string' && doc.paymentLink) ||
-    (typeof doc.paymentUrl === 'string' && doc.paymentUrl) ||
-    (typeof doc.paymentPage === 'string' && doc.paymentPage) ||
-    (typeof doc.phonePeLink === 'string' && doc.phonePeLink) ||
-    (typeof doc.gpayLink === 'string' && doc.gpayLink) ||
-    (typeof doc.paytmLink === 'string' && doc.paytmLink) ||
-    '';
 
-  if (direct && direct.length > 4) {
-    return { primary: direct };
-  }
-
-  // ✅ Your fixed UPI details (no amount)
-  const upiId = '9979174216@ybl';
-  const payeeName = 'Mustak Ishamohmmed Khan';
-  const note = 'thank you for yourpayment';
-
-  // No amount here on purpose – user will enter any amount in UPI app
-  const upiParams = new URLSearchParams({
-    pa: upiId,
-    pn: payeeName,
-    cu: 'INR',
-    tn: note,
-  });
-
-  // Deep link that actually opens UPI app
-  const deepLink = `upi://pay?${upiParams.toString()}`;
-
-  // HTTPS link to your quotation payment page
-  const base =
-    DEFAULT_PUBLIC_BASE_URL.startsWith('http')
-      ? DEFAULT_PUBLIC_BASE_URL
-      : `https://${DEFAULT_PUBLIC_BASE_URL}`;
-
-  const redirectUrl = new URL('/upi-payquotation', base);
-  redirectUrl.search = upiParams.toString();
-
-  return {
-    primary: redirectUrl.toString(), // 🔹 this goes into the PDF QR <a href="">
-    deepLink,
-  };
-}
 
 
 function buildQuotationHtml(quotation: Quotation): string {
   const qrDataUri = getQrDataUri(quotation.qrCode ?? quotation.qr);
-  const phonePeQr = loadLocalImageAsDataURI('phonepe-qr.jpg');
   const verificationUrl = buildVerificationUrl(quotation);
 
   const items: QuotationItem[] = quotation.items ?? [];
@@ -265,12 +207,7 @@ function buildQuotationHtml(quotation: Quotation): string {
     return amt || 0;
   };
 
-  const grandTotal: number = items.reduce(
-    (sum: number, item: QuotationItem) => sum + computeAmount(item),
-    0,
-  );
 
-  const paymentLinks = buildPaymentLinks(quotation);
 
 
   const itemsRows = items
@@ -305,26 +242,15 @@ function buildQuotationHtml(quotation: Quotation): string {
       </a>`
     : qrImage;
 
-    const paymentHref = paymentLinks?.primary || '#';
 
-  const phonePeHtml = `
-  <div
-    style="
-      width: 80px;
-      height: 95px;
-      background: #ffffff;
-      margin: 0 auto;
-    "
-  ></div>
-`;
+
+
 
   
 
 
 
-  const amountWordsHtml = quotation.amountInWords
-    ? `<div style="margin-top:4px;font-weight:800;font-size:10.5px;color:#0b1220;">Amount in Words: ${quotation.amountInWords}</div>`
-    : '';
+
 
   const notesHtml = quotation.notes
     ? `<div style="margin-top:3px;"><strong>Notes:</strong><br/>${quotation.notes}</div>`
