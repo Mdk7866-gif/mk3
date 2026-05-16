@@ -12,11 +12,13 @@ const COLLECTION_MAP: Record<string, Record<string, string>> = {
     gst: 'mushahidgst',
     invoice: 'mushahidinvoice',
     quotation: 'mushahidquotation',
+    quotationdiscountrate: 'mushahidquotationdiscountrate',
   },
   mustak: {
     gst: 'mustakgst',
     invoice: 'mustakinvoice',
     quotation: 'mustakquotation',
+    quotationdiscountrate: 'mustakquotationdiscountrate',
   },
 };
 
