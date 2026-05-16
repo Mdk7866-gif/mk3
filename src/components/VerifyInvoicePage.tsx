@@ -3,14 +3,16 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-type DocumentType = 'gst' | 'invoice' | 'quotation' | undefined;
+type DocumentType = 'gst' | 'invoice' | 'quotation' | 'quotationdiscountrate' | undefined;
 
 interface InvoiceItem {
   no: number;
   description: string;
   hsn?: string;
   quantity: number;
-  rate: number;
+  rate?: number;
+  originalRate?: number;
+  discountRate?: number;
   taxableAmount?: number;
   gst?: number;
   totalAmount?: number;
@@ -66,6 +68,8 @@ const humanizeDocumentType = (type?: DocumentType) => {
       return 'Invoice';
     case 'quotation':
       return 'Quotation';
+    case 'quotationdiscountrate':
+      return 'Quotation (Discount)';
     default:
       return 'Document';
   }
@@ -136,6 +140,10 @@ export default function VerifyInvoicePage({ issuer, title }: VerifyInvoicePagePr
   );
   const hasAmountColumn = useMemo(
     () => items.some((item) => item.amount !== undefined),
+    [items]
+  );
+  const hasDiscountRateColumn = useMemo(
+    () => items.some((item) => item.originalRate !== undefined || item.discountRate !== undefined),
     [items]
   );
 
@@ -227,6 +235,7 @@ export default function VerifyInvoicePage({ issuer, title }: VerifyInvoicePagePr
                   {hasHsnColumn && <th className="border px-3 py-2 text-center">HSN</th>}
                   <th className="border px-3 py-2 text-center">Qty</th>
                   <th className="border px-3 py-2 text-right">Rate</th>
+                  {hasDiscountRateColumn && <th className="border px-3 py-2 text-right">Discount Rate</th>}
                   {hasTaxableColumn && <th className="border px-3 py-2 text-right">Taxable</th>}
                   {hasGstColumn && <th className="border px-3 py-2 text-right">GST</th>}
                   {hasItemTotalColumn && <th className="border px-3 py-2 text-right">Total</th>}
@@ -242,7 +251,26 @@ export default function VerifyInvoicePage({ issuer, title }: VerifyInvoicePagePr
                       <td className="border px-3 py-2 text-center">{item.hsn || '—'}</td>
                     )}
                     <td className="border px-3 py-2 text-center">{item.quantity}</td>
-                    <td className="border px-3 py-2 text-right">{toCurrency(item.rate)}</td>
+                    <td className="border px-3 py-2 text-right">
+                       {item.originalRate !== undefined ? (
+                         item.originalRate === item.discountRate ? (
+                           toCurrency(item.originalRate)
+                         ) : (
+                           <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: '0.85em', marginRight: 4 }}>
+                             {toCurrency(item.originalRate)}
+                           </span>
+                         )
+                       ) : (
+                         toCurrency(item.rate)
+                       )}
+                    </td>
+                    {hasDiscountRateColumn && (
+                       <td className="border px-3 py-2 text-right font-semibold text-green-700">
+                         {item.discountRate !== undefined && item.originalRate !== item.discountRate
+                           ? toCurrency(item.discountRate)
+                           : '—'}
+                       </td>
+                     )}
                     {hasTaxableColumn && (
                       <td className="border px-3 py-2 text-right">
                         {toCurrency(item.taxableAmount)}
