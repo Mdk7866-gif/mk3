@@ -263,7 +263,7 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
     <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
       item.no ?? ''
     }</td>
-    <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;">${
+    <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
       item.description ?? ''
     }</td>
     <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;"></td>
@@ -412,7 +412,6 @@ function buildQuotationHtml(quotation: QuotationDocument): string {
       border-bottom: 2px solid #e2e8f0;
       color:#0b1220;
     }
-    table.items th:nth-child(2),
     table.items th:nth-child(4),
     table.items th:nth-child(5) {
       text-align:left;

@@ -217,7 +217,7 @@ function buildQuotationHtml(quotation: Quotation): string {
         <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
           item.no ?? ''
         }</td>
-        <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;">${
+        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
           item.description ?? ''
         }</td>
         <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;"></td>
@@ -302,7 +302,7 @@ function buildQuotationHtml(quotation: Quotation): string {
 
     table.items { width:100%; border-collapse: collapse; margin-bottom:8px; font-size:11px; }
     table.items thead th { text-align:center; padding:6px 4px; background:#eef2f7; font-weight:700; border-bottom: 2px solid #e2e8f0; color:#0b1220; }
-    table.items th:nth-child(2), table.items th:nth-child(4), table.items th:nth-child(5) { text-align:left; }
+    table.items th:nth-child(4), table.items th:nth-child(5) { text-align:left; }
     table.items td { padding:5px 4px; vertical-align:middle; color:#0f172a; border-bottom:1px solid #f1f5f9; }
     table.items td.right { text-align:right; }
     table, thead, tbody, tr, td, th { page-break-inside: avoid; }
