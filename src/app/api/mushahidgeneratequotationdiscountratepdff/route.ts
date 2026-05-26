@@ -175,7 +175,7 @@ function buildDiscountQuotationHtml(quotation: DiscountQuotationDocument): strin
       (item) => `
   <tr>
     <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.no ?? ''}</td>
-    <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.description ?? ''}</td>
+    <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;text-align:center;">${item.description ?? ''}</td>
     <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.hsn ?? ''}</td>
     <td style="padding:5px 4px;text-align:left;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.quantity ?? ''}</td>
     ${renderRateCell(item)}
@@ -297,7 +297,7 @@ function buildDiscountQuotationHtml(quotation: DiscountQuotationDocument): strin
       <thead>
         <tr>
           <th style="width:7%;">S. No.</th>
-          <th style="width:58%;">Product Description</th>
+          <th style="width:58%;text-align:center;">Product Description</th>
           <th style="width:10%;">HSN</th>
           <th style="width:10%;">QTY.</th>
           <th style="width:15%;">Rate</th>

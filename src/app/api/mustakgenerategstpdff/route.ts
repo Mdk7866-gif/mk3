@@ -268,7 +268,7 @@ function buildInvoiceHtml(invoice: GstInvoice): string {
       (item: GstInvoiceItem) => `
   <tr>
     <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.no ?? ''}</td>
-    <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.description ?? ''}</td>
+    <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;text-align:center;">${item.description ?? ''}</td>
     <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.hsn || '-'}</td>
     <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.quantity ?? ''}</td>
     <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${Number(item.rate ?? 0).toFixed(2)}</td>
@@ -507,7 +507,7 @@ function buildInvoiceHtml(invoice: GstInvoice): string {
         <thead>
         <tr>
           <th style="width:6%;">S. No.</th>
-          <th style="width:44%;">Product Description</th>
+          <th style="width:44%;text-align:center;">Product Description</th>
           <th style="width:5%;">HSN</th>
           <th style="width:5%;">QTY.</th>
           <th style="width:5%;">Rate</th>

@@ -213,7 +213,7 @@ function buildQuotationHtml(quotation: Quotation): string {
         <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
           item.no ?? ''
         }</td>
-        <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${
+        <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;text-align:center;">${
           item.description ?? ''
         }</td>
         <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;"></td>
@@ -376,7 +376,7 @@ function buildQuotationHtml(quotation: Quotation): string {
         <thead>
           <tr>
             <th style="width:8%;">S. No.</th>
-            <th style="width:52%;">Product Description</th>
+            <th style="width:52%;text-align:center;">Product Description</th>
             <th style="width:15%;"></th>
             <th style="width:10%;">QTY.</th>
             <th style="width:2%;">Rate</th>
