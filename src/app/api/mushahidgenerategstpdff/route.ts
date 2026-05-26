@@ -2,13 +2,12 @@
 import fs from 'fs';
 import path from 'path';
 import { NextResponse } from 'next/server';
-import { MongoClient, ServerApiVersion } from 'mongodb';
 import puppeteer, { Page } from 'puppeteer';
+import clientPromise from '@/lib/mongodb';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DB_NAME = 'mk3';
 const COLLECTION_NAME = 'mushahidgst';
 
@@ -85,13 +84,6 @@ interface Invoice {
   [key: string]: unknown;
 }
 
-const client = new MongoClient(MONGODB_URI, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
 
 function getQrDataUri(qrAny: unknown): string | null {
   try {
@@ -426,8 +418,7 @@ function buildInvoiceHtml(invoice: Invoice): string {
       border-bottom: 2px solid #e2e8f0;
       color:#0b1220;
     }
-    table.items th:nth-child(2) { text-align:left; }
-    table.items td { padding:5px 4px; vertical-align:middle; color:#0f172a; border-bottom:1px solid #f1f5f9; }
+        table.items td { padding:5px 4px; vertical-align:middle; color:#0f172a; border-bottom:1px solid #f1f5f9; }
     table.items td.right { text-align:right; }
 
     table, thead, tbody, tr, td, th { page-break-inside: avoid; }
@@ -516,7 +507,7 @@ function buildInvoiceHtml(invoice: Invoice): string {
       <thead>
         <tr>
           <th style="width:6%;">S. No.</th>
-          <th style="width:44%;text-align:left;">Product Description</th>
+          <th style="width:44%;">Product Description</th>
           <th style="width:5%;">HSN</th>
           <th style="width:5%;">QTY.</th>
           <th style="width:5%;">Rate</th>
@@ -605,7 +596,7 @@ async function waitForImagesLoad(page: Page, timeoutMs = 6000): Promise<void> {
 
 export async function GET(): Promise<NextResponse> {
   try {
-    await client.connect();
+    const client = await clientPromise;
     const db = client.db(DB_NAME);
     const collection = db.collection<Invoice>(COLLECTION_NAME);
     const latest = await collection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
@@ -686,8 +677,5 @@ export async function GET(): Promise<NextResponse> {
       { status: 500 },
     );
   } finally {
-    await client.close().catch(() => {
-      // ignore
-    });
-  }
+      }
 }

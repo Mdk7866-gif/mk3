@@ -2,13 +2,12 @@
 import fs from 'fs';
 import path from 'path';
 import { NextResponse } from 'next/server';
-import { MongoClient, ServerApiVersion } from 'mongodb';
 import puppeteer, { Page } from 'puppeteer';
+import clientPromise from '@/lib/mongodb';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DB_NAME = 'mk3';
 const COLLECTION_NAME = 'mushahidquotationdiscountrate';
 
@@ -27,9 +26,6 @@ const DEFAULT_PUBLIC_BASE_URL =
   normalizedVercelUrl ||
   'http://localhost:3000';
 
-const client = new MongoClient(MONGODB_URI, {
-  serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true },
-});
 
 /* ---------- Types ---------- */
 
@@ -369,7 +365,7 @@ async function waitForImagesLoad(page: Page, timeoutMs = 6000): Promise<void> {
 
 export async function GET(): Promise<NextResponse> {
   try {
-    await client.connect();
+    const client = await clientPromise;
     const db = client.db(DB_NAME);
     const collection = db.collection<DiscountQuotationDocument>(COLLECTION_NAME);
 
@@ -444,6 +440,5 @@ export async function GET(): Promise<NextResponse> {
       { status: 500 },
     );
   } finally {
-    await client.close().catch(() => {});
-  }
+      }
 }

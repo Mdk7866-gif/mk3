@@ -2,13 +2,13 @@
 import fs from 'fs';
 import path from 'path';
 import { NextResponse } from 'next/server';
+import clientPromise from '@/lib/mongodb';
 import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb'; // Imported ObjectId
 import puppeteer, { Page } from 'puppeteer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DB_NAME = 'mk3';
 const COLLECTION_NAME = 'mustakgst';
 
@@ -89,13 +89,6 @@ interface GstInvoice {
   [key: string]: unknown;
 }
 
-const client = new MongoClient(MONGODB_URI, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
 
 /* ---------- HELPERS ---------- */
 
@@ -276,7 +269,7 @@ function buildInvoiceHtml(invoice: GstInvoice): string {
       (item: GstInvoiceItem) => `
   <tr>
     <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.no ?? ''}</td>
-    <td style="padding:5px 4px;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.description ?? ''}</td>
+    <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.description ?? ''}</td>
     <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.hsn || '-'}</td>
     <td style="padding:5px 4px;text-align:center;font-size:11px;border-bottom:1px solid #e6e6e6;">${item.quantity ?? ''}</td>
     <td style="padding:5px 4px;text-align:right;font-size:11px;border-bottom:1px solid #e6e6e6;">₹${Number(item.rate ?? 0).toFixed(2)}</td>
@@ -425,8 +418,7 @@ function buildInvoiceHtml(invoice: GstInvoice): string {
       border-bottom: 2px solid #e2e8f0;
       color:#0b1220;
     }
-    table.items th:nth-child(2) { text-align:left; }
-    table.items td { padding:5px 4px; vertical-align:middle; color:#0f172a; border-bottom:1px solid #f1f5f9; }
+        table.items td { padding:5px 4px; vertical-align:middle; color:#0f172a; border-bottom:1px solid #f1f5f9; }
     table.items td.right { text-align:right; }
 
     table, thead, tbody, tr, td, th { page-break-inside: avoid; }
@@ -515,7 +507,7 @@ function buildInvoiceHtml(invoice: GstInvoice): string {
         <thead>
         <tr>
           <th style="width:6%;">S. No.</th>
-          <th style="width:44%;text-align:left;">Product Description</th>
+          <th style="width:44%;">Product Description</th>
           <th style="width:5%;">HSN</th>
           <th style="width:5%;">QTY.</th>
           <th style="width:5%;">Rate</th>
@@ -613,7 +605,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
-    await client.connect();
+    const client = await clientPromise;
     const db = client.db(DB_NAME);
     const collection = db.collection<GstInvoice>(COLLECTION_NAME);
 
@@ -702,8 +694,5 @@ export async function GET(request: Request): Promise<NextResponse> {
       { status: 500 },
     );
   } finally {
-    await client.close().catch(() => {
-      // ignore
-    });
-  }
+      }
 }
