@@ -1,10 +1,9 @@
 //src/app/api/verifyqrcode/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import clientPromise from '@/lib/mongodb';
 
 // MongoDB connection URI from environment variables
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const dbName = 'mk3';
 
 const COLLECTION_MAP: Record<string, Record<string, string>> = {
@@ -23,13 +22,6 @@ const COLLECTION_MAP: Record<string, Record<string, string>> = {
 };
 
 // Create a MongoDB client
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
 
 // GET handler for the /api/verifyqrcode endpoint
 export async function GET(req: NextRequest) {
@@ -45,7 +37,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await client.connect();
+    const client = await clientPromise;
     const db = client.db(dbName);
 
     const searchIssuers = issuer ? [issuer] : Object.keys(COLLECTION_MAP);
@@ -107,6 +99,5 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await client.close().catch(() => {});
-  }
+      }
 }

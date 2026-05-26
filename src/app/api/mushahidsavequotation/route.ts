@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ServerApiVersion, Db } from 'mongodb';
 import QRCode from 'qrcode';
+import clientPromise from '@/lib/mongodb';
 
 interface Item {
   no: number;
@@ -22,17 +23,9 @@ interface QuotationData {
   items: Item[];
 }
 
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const dbName = 'mk3';
 const collectionName = 'mushahidquotation';
 
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
 
 // QT-YYYY-NNN generator
 async function generateQuotationNumber(db: Db, year: string): Promise<string> {
@@ -88,7 +81,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    await client.connect();
+    const client = await clientPromise;
     const db = client.db(dbName);
 
     const year = body.date.split('/')[2];
@@ -124,8 +117,7 @@ export async function POST(req: NextRequest) {
     const collection = db.collection(collectionName);
     const result = await collection.insertOne(document);
 
-    await client.close();
-
+    
     return NextResponse.json(
       {
         message: 'Quotation saved successfully',

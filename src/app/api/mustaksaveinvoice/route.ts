@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ServerApiVersion, Db } from 'mongodb';
 import QRCode from 'qrcode';
+import clientPromise from '@/lib/mongodb';
 
 // Define the expected shape of a single item
 interface Item {
@@ -29,18 +30,10 @@ interface InvoiceData {
 }
 
 // MongoDB connection URI from environment variables
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const dbName = 'mk3';
 const collectionName = 'mustakinvoice';
 
 // Create a MongoDB client
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
 
 // Generate invoice number in format INV-YYYY-NNN
 async function generateInvoiceNumber(db: Db, year: string): Promise<string> {
@@ -111,7 +104,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Connect to MongoDB
-    await client.connect();
+    const client = await clientPromise;
     const db = client.db(dbName);
 
     // Extract year from date (DD/MM/YYYY -> YYYY)
@@ -156,8 +149,7 @@ export async function POST(req: NextRequest) {
     const result = await collection.insertOne(document);
 
     // Close the MongoDB connection
-    await client.close();
-
+    
     return NextResponse.json(
       {
         message: 'Invoice saved successfully',
