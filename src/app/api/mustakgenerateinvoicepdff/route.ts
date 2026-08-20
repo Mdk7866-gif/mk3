@@ -843,7 +843,5 @@ export async function GET(): Promise<NextResponse> {
       { message: `Failed to generate PDF: ${message}` },
       { status: 500 },
     );
-  } finally {
-    await client.close().catch(() => { });
   }
 }
