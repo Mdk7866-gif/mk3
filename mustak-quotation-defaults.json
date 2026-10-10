@@ -1,0 +1,142 @@
+[
+  {
+    "no": 1,
+    "description": "C.F.G. Ceiling(3x3)",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 65
+  },
+  {
+    "no": 2,
+    "description": "Patta Reiling",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 60
+  },
+  {
+    "no": 3,
+    "description": "C.F.G Ceiling(3x4)",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 85
+  },
+  {
+    "no": 4,
+    "description": "Patta Reiling",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 70
+  },
+  {
+    "no": 5,
+    "description": "Gypsum Ceiling",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 75
+  },
+  {
+    "no": 6,
+    "description": "Patta Reiling",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 65
+  },
+  {
+    "no": 7,
+    "description": "Gypsum Expert Section (Gyproc)",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 95
+  },
+  {
+    "no": 8,
+    "description": "Wall Punning (Regular)",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 32
+  },
+  {
+    "no": 9,
+    "description": "Acoustic Ceiling",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 175
+  },
+  {
+    "no": 10,
+    "description": "Wall Punning (Saint Gobain Gyproc)",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 38
+  },
+  {
+    "no": 11,
+    "description": "Ceiling Level",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 60
+  },
+  {
+    "no": 12,
+    "description": "Gypsum Partition",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 145
+  },
+  {
+    "no": 13,
+    "description": "Groove Dhar Round",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 25
+  },
+  {
+    "no": 14,
+    "description": "Double Gypsum Paneling",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 130
+  },
+  {
+    "no": 15,
+    "description": "Double Paneling Habito Board Gyproc",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 290
+  },
+  {
+    "no": 16,
+    "description": "Flooring Sheet",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 27
+  },
+  {
+    "no": 17,
+    "description": "Chicken Mesh Ceiling",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 185
+  },
+  {
+    "no": 18,
+    "description": "Patta Reiling",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 90
+  },
+  {
+    "no": 19,
+    "description": "Light Gala",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 60
+  },
+  {
+    "no": 20,
+    "description": "Profile Light Reiling",
+    "hsn": "",
+    "quantity": 1,
+    "rate": 80
+  }
+]

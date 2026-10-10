@@ -1,7 +1,7 @@
 // src/app/mushahid/quotation/page.tsx
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import ClientDetails, { ClientFormData } from "@/components/ClientDetails";
 import ItemsDetailsQuotation, {
   QuotationItem,
@@ -9,6 +9,12 @@ import ItemsDetailsQuotation, {
 import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
 import PasswordProtection from "@/components/PasswordProtection";
+import defaultProducts from "../../../../mushahid-quotation-defaults.json";
+
+const DEFAULT_ITEMS: QuotationItem[] = defaultProducts.map((item) => ({
+  ...item,
+  id: `default-${item.no}`,
+}));
 
 // Shape expected by /api/mushahidsavequotation
 interface QuotationData {
@@ -31,32 +37,8 @@ interface QuotationData {
 const CreateQuotationPageContent: React.FC = () => {
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [quotationItems, setQuotationItems] = useState<QuotationItem[]>([]);
-  const [initialItems, setInitialItems] = useState<QuotationItem[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [message, setMessage] = useState<string | null>(null);
-
-  // Prefetch data on mount
-  useEffect(() => {
-    const prefetchData = async () => {
-      try {
-        const response = await fetch("/api/prefetchdata/mushahidquotation");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.items && data.items.length > 0) {
-            const itemsWithIds = data.items.map((item: any) => ({
-              ...item,
-              id: item.id || crypto.randomUUID(),
-            }));
-            setInitialItems(itemsWithIds);
-            toast.success("Loaded items from previous quotation", { id: "prefetch" });
-          }
-        }
-      } catch (err) {
-        console.error("Prefetch error:", err);
-      }
-    };
-    prefetchData();
-  }, []);
 
   const handleClientDataChange = useCallback((data: ClientFormData) => {
     setClientData(data);
@@ -265,7 +247,7 @@ const CreateQuotationPageContent: React.FC = () => {
         {/* Quotation items */}
         <ItemsDetailsQuotation 
           onItemsChange={handleQuotationItemsChange} 
-          initialItems={initialItems}
+          initialItems={DEFAULT_ITEMS}
         />
 
         {/* Small summary card */}

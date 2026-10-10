@@ -20,9 +20,9 @@ interface ItemsDetailsQuotationProps {
 }
 
 const ItemsDetailsQuotation: React.FC<ItemsDetailsQuotationProps> = ({ onItemsChange, initialItems }) => {
-  const [items, setItems] = useState<QuotationItem[]>(
+  const [items, setItems] = useState<QuotationItem[]>(() =>
     initialItems && initialItems.length > 0
-      ? initialItems
+      ? initialItems.map((item) => ({ ...item }))
       : [
           {
             id: crypto.randomUUID(),
@@ -34,13 +34,6 @@ const ItemsDetailsQuotation: React.FC<ItemsDetailsQuotationProps> = ({ onItemsCh
           },
         ]
   );
-
-  // Sync with initialItems if they change (e.g. after prefetch)
-  useEffect(() => {
-    if (initialItems && initialItems.length > 0) {
-      setItems(initialItems);
-    }
-  }, [initialItems]);
 
   useEffect(() => {
     if (onItemsChange) {

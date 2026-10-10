@@ -12,13 +12,26 @@ Both `/mustak` and `/mushahid` provide:
 
 - `/invoice`: quantities, rates, line amounts, total, and amount in words.
 - `/gst`: taxable line amounts with the implemented fixed 18% GST calculation, split into 9% CGST and 9% SGST.
-- `/quotation`: quantities and quoted rates, prefilling items from the latest quotation for the issuer.
-- `/quotationdiscountrate`: original and discounted unit prices, prefilling the latest discount quotation's items. `discountRate` means discounted price, not percentage.
+- `/quotation`: quantities and quoted rates, prefilling editable items from the issuer's root-level JSON defaults.
+- `/quotationdiscountrate`: original and discounted unit prices, prefilling editable items from the issuer's discount defaults JSON. `discountRate` means discounted price, not percentage.
 - `/proformainvoice`: saves through the standard invoice API and uses a separate proforma PDF template.
 
 Forms collect a date, client name and address, at least one of email or mobile, optional GSTIN and notes, and line items. Browser dates are converted from `YYYY-MM-DD` to `DD/MM/YYYY` for storage. Invoice amounts use Indian currency formatting and amount-in-words conversion with lakh, crore, and paise.
 
 Responsive navigation offers both issuer menus. Verification and payment pages omit the normal navbar and footer.
+
+## Editing default quotation products
+
+Each quotation page starts from its own root-level JSON file, without fetching previous records from MongoDB:
+
+- `mustak-quotation-defaults.json`: Mustak standard quotations.
+- `mushahid-quotation-defaults.json`: Mushahid standard quotations.
+- `mustak-quotation-discount-defaults.json`: Mustak discount quotations.
+- `mushahid-quotation-discount-defaults.json`: Mushahid discount quotations.
+
+All four files initially contain the supplied 20 products. Use JSON numbers for `no`, `quantity`, and prices. Standard items use `rate`; discount items use `originalRate` and `discountRate`. Both discount prices initially equal the supplied rate because no separate discount prices were provided. Edit them independently as needed.
+
+Edit the relevant file to change future defaults, then rebuild and redeploy the website. Rows remain editable, addable, and removable in the form. Form edits affect only that quotation and never write back to these files. Empty defaults produce one blank editable row. The former four `/api/prefetchdata/*` endpoints have been removed.
 
 ## Document creation workflow
 
@@ -56,7 +69,7 @@ src/app/
   LayoutWrapper.tsx         Conditional navigation/footer
   mustak/                   Five Mustak document forms
   mushahid/                 Five Mushahid document forms
-  api/                      Save, PDF, earnings, prefetch, verification
+  api/                      Save, PDF, earnings, verification
   verifyqrcodefrontend*/    Issuer-specific verification pages
   upi-pay/                  UPI link with optional amount
   upi-payquotation/         UPI link without amount
@@ -124,13 +137,12 @@ API families use these existing naming patterns, with `<issuer>` replaced by `mu
 
 - POST `/api/<issuer>saveinvoice`, `savegst`, `savequotation`, and `savequotationdiscountrate` (each suffix follows the issuer).
 - GET `/api/<issuer>generateinvoicepdff`, `generategstpdff`, `generatequotationpdff`, `generatequotationdiscountratepdff`, and `generateinvoiceproformapdff`.
-- GET `/api/prefetchdata/<issuer>quotation` and `<issuer>quotationdiscountrate`: latest saved items, or an empty items array.
 - GET `/api/earnings/<issuer>`: `gstTotal` and `invoiceTotal`.
 - GET `/api/verifyqrcode`: public document lookup.
 
 ## Current limitations and deployment considerations
 
-- The client password gate uses a hardcoded shared password and the `mk3_authenticated` local-storage flag. It does not authenticate API requests. The inspected save, generation, earnings, prefetch, and verification handlers have no server-side authorization checks.
+- The client password gate uses a hardcoded shared password and the `mk3_authenticated` local-storage flag. It does not authenticate API requests. The inspected save, generation, earnings and verification handlers have no server-side authorization checks.
 - Verification exposes saved client and document details to callers with matching query parameters. Review the intended public fields before exposing sensitive records.
 - Totals are calculated in the browser and submitted to save handlers, which do not independently recompute all amounts. GST rates are fixed implementation values, without selectable rates or an IGST workflow.
 - Number allocation and latest-record PDF selection need changes for reliable concurrent use.

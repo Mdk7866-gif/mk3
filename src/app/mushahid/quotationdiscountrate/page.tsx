@@ -1,7 +1,7 @@
 // src/app/mushahid/quotationdiscountrate/page.tsx
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import ClientDetails, { ClientFormData } from "@/components/ClientDetails";
 import ItemsDetailsQuotationDiscountRate, {
   QuotationDiscountItem,
@@ -9,6 +9,12 @@ import ItemsDetailsQuotationDiscountRate, {
 import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
 import PasswordProtection from "@/components/PasswordProtection";
+import defaultProducts from "../../../../mushahid-quotation-discount-defaults.json";
+
+const DEFAULT_ITEMS: QuotationDiscountItem[] = defaultProducts.map((item) => ({
+  ...item,
+  id: `default-${item.no}`,
+}));
 
 interface QuotationDiscountData {
   date: string;
@@ -31,32 +37,8 @@ interface QuotationDiscountData {
 const CreateMushahidQuotationDiscountPageContent: React.FC = () => {
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [quotationItems, setQuotationItems] = useState<QuotationDiscountItem[]>([]);
-  const [initialItems, setInitialItems] = useState<QuotationDiscountItem[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [message, setMessage] = useState<string | null>(null);
-
-  // Prefetch data on mount
-  useEffect(() => {
-    const prefetchData = async () => {
-      try {
-        const response = await fetch("/api/prefetchdata/mushahidquotationdiscountrate");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.items && data.items.length > 0) {
-            const itemsWithIds = data.items.map((item: any) => ({
-              ...item,
-              id: item.id || crypto.randomUUID(),
-            }));
-            setInitialItems(itemsWithIds);
-            toast.success("Loaded items from previous quotation", { id: "prefetch" });
-          }
-        }
-      } catch (err) {
-        console.error("Prefetch error:", err);
-      }
-    };
-    prefetchData();
-  }, []);
 
   const handleClientDataChange = useCallback((data: ClientFormData) => {
     setClientData(data);
@@ -249,7 +231,7 @@ const CreateMushahidQuotationDiscountPageContent: React.FC = () => {
         <ClientDetails onDataChange={handleClientDataChange} />
         <ItemsDetailsQuotationDiscountRate 
           onItemsChange={handleQuotationItemsChange} 
-          initialItems={initialItems}
+          initialItems={DEFAULT_ITEMS}
         />
 
         {/* Summary card */}

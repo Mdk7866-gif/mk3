@@ -23,9 +23,9 @@ const ItemsDetailsQuotationDiscountRate: React.FC<ItemsDetailsQuotationDiscountR
   onItemsChange,
   initialItems,
 }) => {
-  const [items, setItems] = useState<QuotationDiscountItem[]>(
+  const [items, setItems] = useState<QuotationDiscountItem[]>(() =>
     initialItems && initialItems.length > 0
-      ? initialItems
+      ? initialItems.map((item) => ({ ...item }))
       : [
           {
             id: crypto.randomUUID(),
@@ -38,13 +38,6 @@ const ItemsDetailsQuotationDiscountRate: React.FC<ItemsDetailsQuotationDiscountR
           },
         ]
   );
-
-  // Sync with initialItems if they change (e.g. after prefetch)
-  useEffect(() => {
-    if (initialItems && initialItems.length > 0) {
-      setItems(initialItems);
-    }
-  }, [initialItems]);
 
   useEffect(() => {
     if (onItemsChange) {
