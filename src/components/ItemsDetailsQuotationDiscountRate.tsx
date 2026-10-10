@@ -1,7 +1,21 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import React, { useEffect, useCallback } from 'react';
+import { Plus } from 'lucide-react';
+import DocumentItemActions from './DocumentItemActions';
+import useDocumentItems from './useDocumentItems';
+
+function createBlankItem(): QuotationDiscountItem {
+  return {
+    id: crypto.randomUUID(),
+    no: 1,
+    description: '',
+    hsn: '',
+    quantity: '',
+    originalRate: '',
+    discountRate: '',
+  };
+}
 
 // Define the structure for a single work item for quotation with discount rate
 export interface QuotationDiscountItem {
@@ -23,21 +37,8 @@ const ItemsDetailsQuotationDiscountRate: React.FC<ItemsDetailsQuotationDiscountR
   onItemsChange,
   initialItems,
 }) => {
-  const [items, setItems] = useState<QuotationDiscountItem[]>(() =>
-    initialItems && initialItems.length > 0
-      ? initialItems.map((item) => ({ ...item }))
-      : [
-          {
-            id: crypto.randomUUID(),
-            no: 1,
-            description: '',
-            hsn: '',
-            quantity: '',
-            originalRate: '',
-            discountRate: '',
-          },
-        ]
-  );
+  const { items, setItems, insertItem, removeItem, moveItem, startDrag, endDrag, rowDragProps, rowDragClass } =
+    useDocumentItems(initialItems, createBlankItem);
 
   useEffect(() => {
     if (onItemsChange) {
@@ -77,34 +78,6 @@ const ItemsDetailsQuotationDiscountRate: React.FC<ItemsDetailsQuotationDiscountR
     []
   );
 
-  const handleAddItem = useCallback(() => {
-    setItems((prevItems) => {
-      const newNo =
-        prevItems.length > 0
-          ? Math.max(...prevItems.map((item) => item.no)) + 1
-          : 1;
-      return [
-        ...prevItems,
-        {
-          id: crypto.randomUUID(),
-          no: newNo,
-          description: '',
-          hsn: '',
-          quantity: '',
-          originalRate: '',
-          discountRate: '',
-        },
-      ];
-    });
-  }, []);
-
-  const handleRemoveItem = useCallback((id: string) => {
-    setItems((prevItems) => {
-      const updated = prevItems.filter((item) => item.id !== id);
-      return updated.map((item, index) => ({ ...item, no: index + 1 }));
-    });
-  }, []);
-
   const inputClass =
     'w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm';
 
@@ -113,6 +86,8 @@ const ItemsDetailsQuotationDiscountRate: React.FC<ItemsDetailsQuotationDiscountR
       <h2 className="text-2xl font-bold text-gray-800 mb-6">
         Work Items — Quotation with Discount
       </h2>
+
+      <p className="mb-4 text-sm text-slate-500">Drag the grip to reorder items, or use the arrows. The + button inserts a blank item below. Numbers update automatically.</p>
 
       {/* Desktop Table Layout */}
       <div className="hidden md:block">
@@ -124,14 +99,15 @@ const ItemsDetailsQuotationDiscountRate: React.FC<ItemsDetailsQuotationDiscountR
           <div className="text-right">QTY.</div>
           <div className="text-right">Original Rate</div>
           <div className="text-right">Discount Rate</div>
-          <div className="w-8" />
+          <div className="w-24" />
         </div>
 
         {/* Rows */}
         {items.map((item) => (
           <div
             key={item.id}
-            className="grid grid-cols-[auto_3fr_1fr_1fr_1.3fr_1.3fr_auto] gap-3 items-center mb-4 pb-4 border-b border-gray-100 last:border-b-0 last:mb-0 last:pb-0"
+            {...rowDragProps(item.id)}
+            className={`grid grid-cols-[auto_3fr_1fr_1fr_1.3fr_1.3fr_auto] gap-3 items-center mb-4 pb-4 border-b border-gray-100 last:border-b-0 last:mb-0 last:pb-0 ${rowDragClass(item.id)}`}
           >
             {/* No. */}
             <div className="text-gray-700 self-start pt-2">{item.no}</div>
@@ -225,16 +201,17 @@ const ItemsDetailsQuotationDiscountRate: React.FC<ItemsDetailsQuotationDiscountR
 
             {/* Delete */}
             <div className="flex items-center justify-center self-start pt-2">
-              {items.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveItem(item.id)}
-                  className="text-red-500 hover:text-red-700 p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-red-300"
-                  aria-label="Remove item"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
+              <DocumentItemActions
+                number={item.no}
+                first={item.no === 1}
+                last={item.no === items.length}
+                canRemove={items.length > 1}
+                onInsert={() => insertItem(item.id)}
+                onRemove={() => removeItem(item.id)}
+                onMove={(direction) => moveItem(item.id, direction)}
+                onDragStart={(event) => startDrag(event, item.id)}
+                onDragEnd={endDrag}
+              />
             </div>
           </div>
         ))}
@@ -245,22 +222,24 @@ const ItemsDetailsQuotationDiscountRate: React.FC<ItemsDetailsQuotationDiscountR
         {items.map((item) => (
           <div
             key={item.id}
-            className="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200"
+            {...rowDragProps(item.id)}
+            className={`bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 ${rowDragClass(item.id)}`}
           >
             <div className="flex justify-between items-start mb-2">
               <span className="text-lg font-bold text-gray-800">
                 Item #{item.no}
               </span>
-              {items.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveItem(item.id)}
-                  className="text-red-500 hover:text-red-700 p-1 rounded-md"
-                  aria-label="Remove item"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
+              <DocumentItemActions
+                number={item.no}
+                first={item.no === 1}
+                last={item.no === items.length}
+                canRemove={items.length > 1}
+                onInsert={() => insertItem(item.id)}
+                onRemove={() => removeItem(item.id)}
+                onMove={(direction) => moveItem(item.id, direction)}
+                onDragStart={(event) => startDrag(event, item.id)}
+                onDragEnd={endDrag}
+              />
             </div>
 
             <div className="space-y-3">
@@ -386,7 +365,7 @@ const ItemsDetailsQuotationDiscountRate: React.FC<ItemsDetailsQuotationDiscountR
       <div className="mt-6 flex justify-center md:justify-start">
         <button
           type="button"
-          onClick={handleAddItem}
+          onClick={() => insertItem()}
           className="flex items-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
         >
           <Plus size={20} className="mr-2" /> Add Item

@@ -1,7 +1,7 @@
 // src/app/mushahid/invoice/page.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
 import ClientDetails, { ClientFormData } from "@/components/ClientDetails";
@@ -105,10 +105,10 @@ function MushahidInvoicePageContent() {
   };
 
   // Callback from ItemsDetailsInvoice
-  const handleItemsAndTotalChange = (items: WorkItem[], totalAmount: number) => {
+  const handleItemsAndTotalChange = useCallback((items: WorkItem[], totalAmount: number) => {
     setInvoiceItems(items);
     setTotalInvoiceAmount(totalAmount);
-  };
+  }, []);
 
   // Build invoice payload & validate
   const getFullInvoiceData = (): InvoiceData | null => {

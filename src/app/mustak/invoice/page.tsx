@@ -1,7 +1,7 @@
 // src/app/mustak/invoice/page.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
 import ClientDetails, { ClientFormData } from "@/components/ClientDetails";
@@ -106,10 +106,10 @@ function MustakInvoicePageContent() {
     setClientData(data);
   };
 
-  const handleItemsAndTotalChange = (items: WorkItem[], totalAmount: number) => {
+  const handleItemsAndTotalChange = useCallback((items: WorkItem[], totalAmount: number) => {
     setInvoiceItems(items);
     setTotalInvoiceAmount(totalAmount);
-  };
+  }, []);
 
   const getFullInvoiceData = (): InvoiceData | null => {
     if (

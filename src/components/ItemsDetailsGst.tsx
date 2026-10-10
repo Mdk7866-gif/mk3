@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import React, { useEffect, useCallback, useMemo } from 'react';
+import { Plus } from 'lucide-react';
+import DocumentItemActions from './DocumentItemActions';
+import useDocumentItems from './useDocumentItems';
 
 // Utility function to convert numbers to words
 const numberToWords = (num: number): string => {
@@ -33,6 +35,20 @@ const GST_RATE_PERCENTAGE = 18; // 18%
 const SGST_RATE_PERCENTAGE = GST_RATE_PERCENTAGE / 2; // 9%
 const CGST_RATE_PERCENTAGE = GST_RATE_PERCENTAGE / 2; // 9%
 
+function createBlankItem(): GstItem {
+  return {
+    id: crypto.randomUUID(),
+    no: 1,
+    description: '',
+    hsn: '',
+    quantity: '',
+    rate: '',
+    taxableAmount: 0,
+    gst: 0,
+    totalAmount: 0,
+  };
+}
+
 // Define the structure for a single work item
 export interface GstItem {
   id: string; // Unique ID for React list keys
@@ -63,23 +79,8 @@ export interface GstInvoiceTotals {
 }
 
 const ItemsDetailsGst: React.FC<ItemsDetailsGstProps> = ({ onItemsChange, initialItems }) => {
-  const [items, setItems] = useState<GstItem[]>(
-    initialItems && initialItems.length > 0
-      ? initialItems
-      : [
-          {
-            id: crypto.randomUUID(),
-            no: 1,
-            description: '',
-            hsn: '',
-            quantity: '',
-            rate: '',
-            taxableAmount: 0,
-            gst: 0,
-            totalAmount: 0,
-          },
-        ]
-  );
+  const { items, setItems, insertItem, removeItem, moveItem, startDrag, endDrag, rowDragProps, rowDragClass } =
+    useDocumentItems(initialItems, createBlankItem);
 
   const calculateAllTotals = useCallback((): GstInvoiceTotals => {
     let totalAmountBeforeTax = 0;
@@ -103,7 +104,7 @@ const ItemsDetailsGst: React.FC<ItemsDetailsGstProps> = ({ onItemsChange, initia
     };
   }, [items]);
 
-  const totals = calculateAllTotals();
+  const totals = useMemo(calculateAllTotals, [calculateAllTotals]);
 
   // Memoize formattedItems to prevent unnecessary re-renders
   const formattedItems = useMemo(() => {
@@ -161,33 +162,6 @@ const ItemsDetailsGst: React.FC<ItemsDetailsGstProps> = ({ onItemsChange, initia
     []
   );
 
-  const handleAddItem = useCallback(() => {
-    setItems((prevItems) => {
-      const newNo = prevItems.length > 0 ? Math.max(...prevItems.map(item => item.no)) + 1 : 1;
-      return [
-        ...prevItems,
-        {
-          id: crypto.randomUUID(),
-          no: newNo,
-          description: '',
-          hsn: '',
-          quantity: '',
-          rate: '',
-          taxableAmount: 0,
-          gst: 0,
-          totalAmount: 0,
-        },
-      ];
-    });
-  }, []);
-
-  const handleRemoveItem = useCallback((id: string) => {
-    setItems((prevItems) => {
-      const updatedItems = prevItems.filter((item) => item.id !== id);
-      return updatedItems.map((item, index) => ({ ...item, no: index + 1 }));
-    });
-  }, []);
-
   const formatCurrency = (amount: number) => {
     return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -196,10 +170,12 @@ const ItemsDetailsGst: React.FC<ItemsDetailsGstProps> = ({ onItemsChange, initia
     <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">GST Work Items</h2>
 
+      <p className="mb-4 text-sm text-slate-500">Drag the grip to reorder items, or use the arrows. The + button inserts a blank item below. Numbers update automatically.</p>
+
       {/* Desktop Table Layout */}
       <div className="overflow-x-auto">
         <div className="hidden md:block min-w-max">
-          <div className="grid grid-cols-[40px_minmax(180px,2.5fr)_80px_60px_80px_100px_100px_120px_40px] gap-2 text-gray-600 font-semibold border-b pb-3 mb-3 sticky top-0 bg-white z-10 text-xs md:text-sm">
+          <div className="grid grid-cols-[40px_minmax(180px,2.5fr)_80px_60px_80px_100px_100px_120px_96px] gap-2 text-gray-600 font-semibold border-b pb-3 mb-3 sticky top-0 bg-white z-10 text-xs md:text-sm">
             <div className="text-left">No.</div>
             <div className="text-left">Description</div>
             <div className="text-left">HSN</div>
@@ -208,13 +184,14 @@ const ItemsDetailsGst: React.FC<ItemsDetailsGstProps> = ({ onItemsChange, initia
             <div className="text-right">Taxable Amt.</div>
             <div className="text-right">GST ({GST_RATE_PERCENTAGE}%)</div>
             <div className="text-right">Total Amt.</div>
-            <div className="w-8"></div>
+            <div className="w-24"></div>
           </div>
 
           {items.map((item) => (
             <div
               key={item.id}
-              className="grid grid-cols-[40px_minmax(180px,2.5fr)_80px_60px_80px_100px_100px_120px_40px] gap-2 items-center mb-4 pb-4 border-b border-gray-100 last:border-b-0 last:mb-0 last:pb-0 text-xs md:text-sm"
+              {...rowDragProps(item.id)}
+              className={`grid grid-cols-[40px_minmax(180px,2.5fr)_80px_60px_80px_100px_100px_120px_96px] gap-2 items-center mb-4 pb-4 border-b border-gray-100 last:border-b-0 last:mb-0 last:pb-0 text-xs md:text-sm ${rowDragClass(item.id)}`}
             >
               <div className="text-gray-700 text-left self-start pt-2">{item.no}</div>
               <div>
@@ -270,16 +247,17 @@ const ItemsDetailsGst: React.FC<ItemsDetailsGstProps> = ({ onItemsChange, initia
                 {formatCurrency(item.totalAmount)}
               </div>
               <div className="flex items-center justify-center self-start pt-2">
-                {items.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(item.id)}
-                    className="text-red-500 hover:text-red-700 p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-red-300"
-                    aria-label="Remove item"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
+                <DocumentItemActions
+                number={item.no}
+                first={item.no === 1}
+                last={item.no === items.length}
+                canRemove={items.length > 1}
+                onInsert={() => insertItem(item.id)}
+                onRemove={() => removeItem(item.id)}
+                onMove={(direction) => moveItem(item.id, direction)}
+                onDragStart={(event) => startDrag(event, item.id)}
+                onDragEnd={endDrag}
+              />
               </div>
             </div>
           ))}
@@ -289,19 +267,20 @@ const ItemsDetailsGst: React.FC<ItemsDetailsGstProps> = ({ onItemsChange, initia
       {/* Mobile Card Layout */}
       <div className="md:hidden space-y-4">
         {items.map((item) => (
-          <div key={item.id} className="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200">
+          <div key={item.id} {...rowDragProps(item.id)} className={`bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 ${rowDragClass(item.id)}`}>
             <div className="flex justify-between items-start mb-2">
               <span className="text-lg font-bold text-gray-800">Item #{item.no}</span>
-              {items.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveItem(item.id)}
-                  className="text-red-500 hover:text-red-700 p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-red-300"
-                  aria-label="Remove item"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
+              <DocumentItemActions
+                number={item.no}
+                first={item.no === 1}
+                last={item.no === items.length}
+                canRemove={items.length > 1}
+                onInsert={() => insertItem(item.id)}
+                onRemove={() => removeItem(item.id)}
+                onMove={(direction) => moveItem(item.id, direction)}
+                onDragStart={(event) => startDrag(event, item.id)}
+                onDragEnd={endDrag}
+              />
             </div>
             <div className="space-y-3">
               <div>
@@ -378,7 +357,7 @@ const ItemsDetailsGst: React.FC<ItemsDetailsGstProps> = ({ onItemsChange, initia
       <div className="mt-6 flex justify-center md:justify-start">
         <button
           type="button"
-          onClick={handleAddItem}
+          onClick={() => insertItem()}
           className="flex items-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
         >
           <Plus size={20} className="mr-2" /> Add Item

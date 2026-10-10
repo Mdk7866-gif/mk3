@@ -1,8 +1,10 @@
 // src/components/ItemsDetailsInvoice.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2 } from 'lucide-react'; // Using lucide-react for icons
+import React, { useEffect, useCallback } from 'react';
+import { Plus } from 'lucide-react'; // Using lucide-react for icons
+import DocumentItemActions from './DocumentItemActions';
+import useDocumentItems from './useDocumentItems';
 
 // Utility function to convert numbers to words (basic implementation)
 const numberToWords = (num: number): string => {
@@ -33,6 +35,18 @@ const numberToWords = (num: number): string => {
 };
 
 
+function createBlankItem(): WorkItem {
+  return {
+    id: crypto.randomUUID(),
+    no: 1,
+    description: '',
+    hsn: '',
+    quantity: '',
+    rate: '',
+    amount: 0,
+  };
+}
+
 // Define the structure for a single work item
 export interface WorkItem {
   id: string; // Unique ID for React list keys and easy manipulation
@@ -51,21 +65,8 @@ interface ItemsDetailsInvoiceProps {
 }
 
 const ItemsDetailsInvoice: React.FC<ItemsDetailsInvoiceProps> = ({ onItemsChange, initialItems }) => {
-  const [items, setItems] = useState<WorkItem[]>(
-    initialItems && initialItems.length > 0
-      ? initialItems
-      : [
-          {
-            id: crypto.randomUUID(),
-            no: 1,
-            description: '',
-            hsn: '',
-            quantity: '',
-            rate: '',
-            amount: 0,
-          },
-        ]
-  );
+  const { items, setItems, insertItem, removeItem, moveItem, startDrag, endDrag, rowDragProps, rowDragClass } =
+    useDocumentItems(initialItems, createBlankItem);
 
   const calculateTotal = useCallback(() => {
     return items.reduce((sum, item) => sum + item.amount, 0);
@@ -111,34 +112,11 @@ const ItemsDetailsInvoice: React.FC<ItemsDetailsInvoiceProps> = ({ onItemsChange
     []
   );
 
-  const handleAddItem = useCallback(() => {
-    setItems((prevItems) => {
-      const newNo = prevItems.length > 0 ? Math.max(...prevItems.map(item => item.no)) + 1 : 1;
-      return [
-        ...prevItems,
-        {
-          id: crypto.randomUUID(),
-          no: newNo,
-          description: '',
-          hsn: '',
-          quantity: '',
-          rate: '',
-          amount: 0,
-        },
-      ];
-    });
-  }, []);
-
-  const handleRemoveItem = useCallback((id: string) => {
-    setItems((prevItems) => {
-      const updatedItems = prevItems.filter((item) => item.id !== id);
-      return updatedItems.map((item, index) => ({ ...item, no: index + 1 }));
-    });
-  }, []);
-
   return (
     <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg overflow-x-auto"> {/* overflow-x-auto for desktop table if it gets too wide */}
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Work Items</h2>
+
+      <p className="mb-4 text-sm text-slate-500">Drag the grip to reorder items, or use the arrows. The + button inserts a blank item below. Numbers update automatically.</p>
 
       {/* Desktop Table Layout */}
       <div className="hidden md:block"> {/* Hide on small screens, show on medium and up */}
@@ -150,14 +128,15 @@ const ItemsDetailsInvoice: React.FC<ItemsDetailsInvoiceProps> = ({ onItemsChange
           <div className="text-right">QTY.</div>
           <div className="text-right">Rate</div>
           <div className="text-right">Amount</div>
-          <div className="w-8"></div> {/* Placeholder for delete button column */}
+          <div className="w-24"></div> {/* Placeholder for delete button column */}
         </div>
 
         {/* Item Rows */}
         {items.map((item) => (
           <div
             key={item.id}
-            className="grid grid-cols-[auto_3fr_1fr_1fr_1.2fr_auto_auto] gap-4 items-center mb-4 pb-4 border-b border-gray-100 last:border-b-0 last:mb-0 last:pb-0"
+            {...rowDragProps(item.id)}
+            className={`grid grid-cols-[auto_3fr_1fr_1fr_1.2fr_auto_auto] gap-4 items-center mb-4 pb-4 border-b border-gray-100 last:border-b-0 last:mb-0 last:pb-0 ${rowDragClass(item.id)}`}
           >
             {/* No. */}
             <div className="text-gray-700 text-left self-start pt-2">{item.no}</div>
@@ -220,16 +199,17 @@ const ItemsDetailsInvoice: React.FC<ItemsDetailsInvoiceProps> = ({ onItemsChange
 
             {/* Delete Button */}
             <div className="flex items-center justify-center self-start pt-2">
-              {items.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveItem(item.id)}
-                  className="text-red-500 hover:text-red-700 p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-red-300"
-                  aria-label="Remove item"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
+              <DocumentItemActions
+                number={item.no}
+                first={item.no === 1}
+                last={item.no === items.length}
+                canRemove={items.length > 1}
+                onInsert={() => insertItem(item.id)}
+                onRemove={() => removeItem(item.id)}
+                onMove={(direction) => moveItem(item.id, direction)}
+                onDragStart={(event) => startDrag(event, item.id)}
+                onDragEnd={endDrag}
+              />
             </div>
           </div>
         ))}
@@ -238,19 +218,20 @@ const ItemsDetailsInvoice: React.FC<ItemsDetailsInvoiceProps> = ({ onItemsChange
       {/* Mobile Card Layout */}
       <div className="md:hidden space-y-4"> {/* Show on small screens, hide on medium and up */}
         {items.map((item) => (
-          <div key={item.id} className="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200">
+          <div key={item.id} {...rowDragProps(item.id)} className={`bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 ${rowDragClass(item.id)}`}>
             <div className="flex justify-between items-start mb-2">
               <span className="text-lg font-bold text-gray-800">Item #{item.no}</span>
-              {items.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveItem(item.id)}
-                  className="text-red-500 hover:text-red-700 p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-red-300"
-                  aria-label="Remove item"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
+              <DocumentItemActions
+                number={item.no}
+                first={item.no === 1}
+                last={item.no === items.length}
+                canRemove={items.length > 1}
+                onInsert={() => insertItem(item.id)}
+                onRemove={() => removeItem(item.id)}
+                onMove={(direction) => moveItem(item.id, direction)}
+                onDragStart={(event) => startDrag(event, item.id)}
+                onDragEnd={endDrag}
+              />
             </div>
             <div className="space-y-3">
               <div>
@@ -321,7 +302,7 @@ const ItemsDetailsInvoice: React.FC<ItemsDetailsInvoiceProps> = ({ onItemsChange
       <div className="mt-6 flex justify-center md:justify-start"> {/* Center button on mobile */}
         <button
           type="button"
-          onClick={handleAddItem}
+          onClick={() => insertItem()}
           className="flex items-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
         >
           <Plus size={20} className="mr-2" /> Add Item

@@ -24,14 +24,34 @@ Responsive navigation offers both issuer menus. Verification and payment pages o
 
 Each quotation page starts from its own root-level JSON file, without fetching previous records from MongoDB:
 
-- `mustak-quotation-defaults.json`: Mustak standard quotations.
-- `mushahid-quotation-defaults.json`: Mushahid standard quotations.
-- `mustak-quotation-discount-defaults.json`: Mustak discount quotations.
-- `mushahid-quotation-discount-defaults.json`: Mushahid discount quotations.
+- [mustak-quotation-defaults.json](mustak-quotation-defaults.json): Mustak standard quotations.
+- [mushahid-quotation-defaults.json](mushahid-quotation-defaults.json): Mushahid standard quotations.
+- [mustak-quotation-discount-defaults.json](mustak-quotation-discount-defaults.json): Mustak discount quotations.
+- [mushahid-quotation-discount-defaults.json](mushahid-quotation-discount-defaults.json): Mushahid discount quotations.
 
-All four files initially contain the supplied 20 products. Use JSON numbers for `no`, `quantity`, and prices. Standard items use `rate`; discount items use `originalRate` and `discountRate`. Both discount prices initially equal the supplied rate because no separate discount prices were provided. Edit them independently as needed.
+All four files contain 21 default products. **Curve Ceiling is item 10**, with quantity 1, a standard rate of 120, and both original and discounted prices of 120 in the discount files. The former items 10 through 20 are now numbered 11 through 21. Use JSON numbers for `no`, `quantity`, and prices. Standard items use `rate`; discount items use `originalRate` and `discountRate`. Both discount prices initially equal the supplied rate because no separate discount prices were provided. Edit them independently as needed.
 
-Edit the relevant file to change future defaults, then rebuild and redeploy the website. Rows remain editable, addable, and removable in the form. Form edits affect only that quotation and never write back to these files. Empty defaults produce one blank editable row. The former four `/api/prefetchdata/*` endpoints have been removed.
+Edit the relevant file to change future defaults, then rebuild and redeploy the website. Rows remain editable, addable, and removable in the form. Use the row + button to insert a blank product directly below an existing one. Drag the grip to reorder products, or use the up/down buttons (also available on mobile) or arrow keys on the focused grip. Row numbers update automatically, and the submitted quotation preserves the selected order. Form edits affect only that quotation and never write back to these files. Empty defaults produce one blank editable row. Defaults are imported directly into the pages, so no backend API or database read is needed to load them. Historical saved quotations remain in MongoDB.
+
+The previous fetch-on-mount logic, asynchronous prefill state, previous-quotation notifications, and item synchronization effects were removed. These unused endpoints were deleted:
+
+- `/api/prefetchdata/mustakquotation`
+- `/api/prefetchdata/mushahidquotation`
+- `/api/prefetchdata/mustakquotationdiscountrate`
+- `/api/prefetchdata/mushahidquotationdiscountrate`
+
+## Editing and ordering document items
+
+All ten document forms support these controls for both `/mustak` and `/mushahid`: `/invoice`, `/proformainvoice`, `/gst`, `/quotation`, and `/quotationdiscountrate`.
+
+- **Insert between products:** click the row + button to insert a blank item below it. To add item 8, click + beside item 7.
+- **Drag to reorder:** hold the grip icon, drag the row to another position, and release over the highlighted destination. Dropping in the upper or lower half places it before or after that row.
+- **Move with buttons or keyboard:** use the up/down buttons, including on mobile. A focused grip also supports the Up/Down arrow keys. Boundary move buttons are disabled.
+- **Add or remove:** the bottom Add Item button appends a row; the trash button removes one. The last remaining row cannot be deleted through the UI.
+
+Row numbers update automatically, and submitted items retain the selected order. Reordering preserves descriptions, HSN, quantities, prices, line amounts, and GST values. Inserting a blank row leaves totals unchanged; deleting a populated row updates them. Form edits do not alter the JSON defaults or earlier saved records.
+
+The shared implementation is [useDocumentItems.ts](src/components/useDocumentItems.ts) and [DocumentItemActions.tsx](src/components/DocumentItemActions.tsx), used by all four item-editor components. Invoice/proforma callbacks and GST totals are stabilized to avoid repeated parent updates when rendering.
 
 ## Document creation workflow
 
@@ -78,6 +98,10 @@ src/components/Homepagecardstotalearning/
                             Issuer earnings cards
 src/lib/mongodb.ts          Shared MongoDB connection promise
 public/                     QR images, SVGs, PDFs, credentials assets
+*-quotation-defaults.json   Standard quotation defaults for each issuer
+*-quotation-discount-defaults.json
+                            Discount quotation defaults for each issuer
+AGENTS.md                   Contributor guidelines
 ```
 
 Mustak and Mushahid have separate route implementations. Changes to document fields should be checked across both issuers' forms, save handlers, PDF templates, and verification view. Import shared modules using the `@/*` alias for `src/*`. The MongoDB module reuses a global connection promise during development.
@@ -120,6 +144,14 @@ Open `http://localhost:3000`. The UI password gate uses the shared password defi
 
 There is no configured test framework, `npm test` script, or coverage threshold. For document changes, use a development database and manually verify both issuers: required-field errors, calculations, saved fields, PDF downloads and layout, QR verification, quotation prefill, and UPI links. Include long descriptions and many items in PDF checks. Test submissions insert real records into the configured database.
 
+### Validation of the document-item changes
+
+Local headless-browser checks covered all ten forms. The six invoice, proforma, and GST pages passed insertion, mouse dragging, arrow movement, automatic numbering, preservation of amounts and tax values, deletion totals, and mobile-control checks. The four quotation pages passed default-row and insertion regression checks; earlier quotation checks also covered editing, dragging, and fresh defaults after reload. No bills were saved during these row-control checks.
+
+TypeScript checks, the production build, and whitespace checks passed for the row-control changes. The four JSON files were subsequently checked for 21 sequential products and Curve Ceiling at position 10 with the requested price.
+
+Known verification limitations: `npm run lint` fails in the existing ESLint configuration with a circular-structure error during config validation. The production build still reports a Turbopack file-tracing warning in the Mustak quotation PDF route. There is no persistent automated test suite for these checks, and live deployment, payment completion, and PDF generation were not exercised by the row-control browser checks.
+
 ## MongoDB records and API organization
 
 Database `mk3` contains these collections:
@@ -151,4 +183,4 @@ API families use these existing naming patterns, with `<issuer>` replaced by `mu
 - PDF routes require Node.js, Chromium, local asset access, and enough memory and execution time to render documents. A static export cannot provide the database or PDF APIs. Chromium launches currently use `--no-sandbox` flags.
 - The root layout loads Inter through `next/font/google`; builds may require network access for font retrieval.
 
-These observations describe source behavior, not a completed production security audit or runtime test. See [AGENTS.md](AGENTS.md) for contributor conventions.
+Source observations and local validation are documented above; they do not constitute a production security audit or live-deployment verification. See [AGENTS.md](AGENTS.md) for contributor conventions.
