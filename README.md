@@ -12,7 +12,7 @@ Both `/mustak` and `/mushahid` provide:
 
 - `/invoice`: quantities, rates, line amounts, total, and amount in words.
 - `/gst`: taxable line amounts with the implemented fixed 18% GST calculation, split into 9% CGST and 9% SGST.
-- `/quotation`: quantities and quoted rates, prefilling editable items from the issuer's root-level JSON defaults.
+- `/quotation`: quantities and quoted rates, prefilling editable items from the issuer's JSON defaults in `default_data/`.
 - `/quotationdiscountrate`: original and discounted unit prices, prefilling editable items from the issuer's discount defaults JSON. `discountRate` means discounted price, not percentage.
 - `/proformainvoice`: saves through the standard invoice API and uses a separate proforma PDF template.
 
@@ -22,12 +22,12 @@ Responsive navigation offers both issuer menus. Verification and payment pages o
 
 ## Editing default quotation products
 
-Each quotation page starts from its own root-level JSON file, without fetching previous records from MongoDB:
+Each quotation page starts from its own JSON file in `default_data/`, without fetching previous records from MongoDB:
 
-- [mustak-quotation-defaults.json](mustak-quotation-defaults.json): Mustak standard quotations.
-- [mushahid-quotation-defaults.json](mushahid-quotation-defaults.json): Mushahid standard quotations.
-- [mustak-quotation-discount-defaults.json](mustak-quotation-discount-defaults.json): Mustak discount quotations.
-- [mushahid-quotation-discount-defaults.json](mushahid-quotation-discount-defaults.json): Mushahid discount quotations.
+- [mustak-quotation-defaults.json](default_data/mustak-quotation-defaults.json): Mustak standard quotations.
+- [mushahid-quotation-defaults.json](default_data/mushahid-quotation-defaults.json): Mushahid standard quotations.
+- [mustak-quotation-discount-defaults.json](default_data/mustak-quotation-discount-defaults.json): Mustak discount quotations.
+- [mushahid-quotation-discount-defaults.json](default_data/mushahid-quotation-discount-defaults.json): Mushahid discount quotations.
 
 All four files contain 21 default products. **Curve Ceiling is item 10**, with quantity 1, a standard rate of 120, and both original and discounted prices of 120 in the discount files. The former items 10 through 20 are now numbered 11 through 21. Use JSON numbers for `no`, `quantity`, and prices. Standard items use `rate`; discount items use `originalRate` and `discountRate`. Both discount prices initially equal the supplied rate because no separate discount prices were provided. Edit them independently as needed.
 
@@ -98,9 +98,10 @@ src/components/Homepagecardstotalearning/
                             Issuer earnings cards
 src/lib/mongodb.ts          Shared MongoDB connection promise
 public/                     QR images, SVGs, PDFs, credentials assets
-*-quotation-defaults.json   Standard quotation defaults for each issuer
-*-quotation-discount-defaults.json
-                            Discount quotation defaults for each issuer
+default_data/               Editable quotation defaults
+  *-quotation-defaults.json Standard defaults for each issuer
+  *-quotation-discount-defaults.json
+                            Discount defaults for each issuer
 AGENTS.md                   Contributor guidelines
 ```
 

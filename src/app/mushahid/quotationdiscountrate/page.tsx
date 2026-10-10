@@ -9,7 +9,7 @@ import ItemsDetailsQuotationDiscountRate, {
 import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
 import PasswordProtection from "@/components/PasswordProtection";
-import defaultProducts from "../../../../mushahid-quotation-discount-defaults.json";
+import defaultProducts from "../../../../default_data/mushahid-quotation-discount-defaults.json";
 
 const DEFAULT_ITEMS: QuotationDiscountItem[] = defaultProducts.map((item) => ({
   ...item,
